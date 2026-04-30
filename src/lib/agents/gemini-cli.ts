@@ -13,7 +13,7 @@ interface GeminiCliOptions {
   model?: string;
 }
 
-const DEFAULT_MODEL = "gemini-2.5-pro";
+const DEFAULT_MODEL = "gemini-2.5-flash"; // CLI 부팅 ~10s + flash로 응답 빠르게
 
 export function createGeminiCliAdapter(
   opts: GeminiCliOptions = {},
