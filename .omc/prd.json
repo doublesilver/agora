@@ -68,7 +68,7 @@
       "id": "US-M5",
       "title": "SSE API 8개 + JSONL 로거 + Node runtime 박제",
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "estimateHours": 3,
       "acceptanceCriteria": [
         "모든 src/app/api/*/route.ts 상단에 export const runtime = 'nodejs' + dynamic = 'force-dynamic' 박제 (R6)",
