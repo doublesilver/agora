@@ -7,6 +7,8 @@ import { createClaudeApiAdapter } from "./agents/claude-api";
 import { createGptApiAdapter } from "./agents/gpt-api";
 import { createGeminiApiAdapter } from "./agents/gemini-api";
 import { createClaudeCliAdapter } from "./agents/claude-cli";
+import { createCodexCliAdapter } from "./agents/codex-cli";
+import { createGeminiCliAdapter } from "./agents/gemini-cli";
 
 export interface AgentSpec {
   id: AgentId;
@@ -41,11 +43,9 @@ export function createAdapter(spec: AgentSpec): AgentAdapter {
       case "claude":
         return createClaudeCliAdapter();
       case "codex":
+        return createCodexCliAdapter();
       case "gemini":
-        // M3 1차 제출 범위 외 — 시간 남으면 후속.
-        throw new Error(
-          `agent-factory: ${spec.id}/cli는 1차 제출에 미포함. ${spec.id}/api 또는 claude/cli 사용.`,
-        );
+        return createGeminiCliAdapter();
     }
   }
 
