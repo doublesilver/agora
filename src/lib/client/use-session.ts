@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   AgentConfig,
+  AgentRuntimeStats,
   ChatMessage,
   InterveneMode,
   OrchestratorEvent,
@@ -20,7 +21,21 @@ const initialView: SessionView = {
   passedRecent: {},
   errorRecent: null,
   endReason: null,
+  activeSpeaker: null,
+  agentStats: {},
 };
+
+function blankStats(): AgentRuntimeStats {
+  return {
+    phase: "idle",
+    lastTurn: null,
+    inputTokens: 0,
+    outputTokens: 0,
+    startedAt: null,
+    firstTokenAt: null,
+    endedAt: null,
+  };
+}
 
 export function useSession() {
   const [view, setView] = useState<SessionView>(initialView);
@@ -170,6 +185,15 @@ export function useSession() {
   };
 }
 
+function patchStats(
+  prev: SessionView,
+  agentId: AgentId,
+  patch: Partial<AgentRuntimeStats>,
+): Partial<Record<AgentId, AgentRuntimeStats>> {
+  const current = prev.agentStats[agentId] ?? blankStats();
+  return { ...prev.agentStats, [agentId]: { ...current, ...patch } };
+}
+
 function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
   switch (e.type) {
     case "session_start":
@@ -199,11 +223,18 @@ function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
         turn: e.turn,
         messages: [...prev.messages, msg],
         passedRecent: { ...prev.passedRecent, [e.agentId]: undefined },
+        activeSpeaker: e.agentId,
+        agentStats: patchStats(prev, e.agentId, {
+          phase: "thinking",
+          lastTurn: e.turn,
+          startedAt: e.ts,
+          firstTokenAt: null,
+          endedAt: null,
+        }),
       };
     }
     case "token": {
       const messages = prev.messages.slice();
-      // 마지막 메시지가 같은 agent의 streaming 메시지면 append.
       for (let i = messages.length - 1; i >= 0; i--) {
         const m = messages[i];
         if (m.role === e.agentId && m.streaming) {
@@ -211,7 +242,16 @@ function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
           break;
         }
       }
-      return { ...prev, messages };
+      const stats = prev.agentStats[e.agentId];
+      const isFirstToken = !stats?.firstTokenAt;
+      return {
+        ...prev,
+        messages,
+        agentStats: patchStats(prev, e.agentId, {
+          phase: "streaming",
+          firstTokenAt: isFirstToken ? e.ts : (stats?.firstTokenAt ?? e.ts),
+        }),
+      };
     }
     case "agent_end": {
       const messages = prev.messages.slice();
@@ -227,12 +267,28 @@ function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
           break;
         }
       }
-      return { ...prev, messages };
+      return {
+        ...prev,
+        messages,
+        activeSpeaker:
+          prev.activeSpeaker === e.agentId ? null : prev.activeSpeaker,
+        agentStats: patchStats(prev, e.agentId, {
+          phase: "idle",
+          endedAt: e.ts,
+        }),
+      };
     }
     case "agent_pass": {
       return {
         ...prev,
         passedRecent: { ...prev.passedRecent, [e.agentId]: e.turn },
+        activeSpeaker:
+          prev.activeSpeaker === e.agentId ? null : prev.activeSpeaker,
+        agentStats: patchStats(prev, e.agentId, {
+          phase: "passed",
+          lastTurn: e.turn,
+          endedAt: e.ts,
+        }),
       };
     }
     case "agent_timeout":
@@ -243,16 +299,42 @@ function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
           message: `timeout (${e.timeoutMs / 1000}s)`,
           turn: e.turn,
         },
+        activeSpeaker:
+          prev.activeSpeaker === e.agentId ? null : prev.activeSpeaker,
+        agentStats: patchStats(prev, e.agentId, {
+          phase: "timeout",
+          endedAt: e.ts,
+        }),
       };
     case "agent_error":
       return {
         ...prev,
         errorRecent: { agentId: e.agentId, message: e.message, turn: e.turn },
+        activeSpeaker:
+          prev.activeSpeaker === e.agentId ? null : prev.activeSpeaker,
+        agentStats: patchStats(prev, e.agentId, {
+          phase: "error",
+          endedAt: e.ts,
+        }),
       };
-    case "usage":
-      return { ...prev, sessionTokens: e.sessionTotal };
+    case "usage": {
+      const cur = prev.agentStats[e.agentId] ?? blankStats();
+      return {
+        ...prev,
+        sessionTokens: e.sessionTotal,
+        agentStats: patchStats(prev, e.agentId, {
+          inputTokens: cur.inputTokens + e.inputTokens,
+          outputTokens: cur.outputTokens + e.outputTokens,
+        }),
+      };
+    }
     case "session_end":
-      return { ...prev, status: "stopped", endReason: e.reason };
+      return {
+        ...prev,
+        status: "stopped",
+        endReason: e.reason,
+        activeSpeaker: null,
+      };
     case "system_prompt_change":
       return prev;
     default:

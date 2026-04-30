@@ -6,6 +6,7 @@ import { LeftPanel } from "@/components/LeftPanel";
 import { ChatView } from "@/components/ChatView";
 import { InterventionInput } from "@/components/InterventionInput";
 import { HeaderBar } from "@/components/HeaderBar";
+import { AgentStrip } from "@/components/AgentStrip";
 import { useSession } from "@/lib/client/use-session";
 import type { AgentConfig } from "@/lib/client/types";
 import { ROLE_SEEDS } from "@/lib/agents/role-seeds";
@@ -59,6 +60,7 @@ export default function Home() {
       />
       <main className="flex flex-1 flex-col overflow-hidden">
         <HeaderBar view={view} />
+        <AgentStrip view={view} configs={configs} />
         <ChatView view={view} />
         <InterventionInput view={view} onSend={actions.intervene} />
       </main>

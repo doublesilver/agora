@@ -91,8 +91,14 @@ function Bubble({ message }: { message: ChatMessage }) {
         <span>{theme.emoji}</span>
         <span className="font-medium text-zinc-300">{theme.label}</span>
         {message.turn !== undefined && <span>· turn {message.turn}</span>}
-        {message.streaming && (
-          <span className="text-blue-400">· streaming…</span>
+        {message.streaming && message.text.length === 0 && (
+          <span className="ml-2 inline-flex items-center gap-1 text-amber-300">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+            thinking…
+          </span>
+        )}
+        {message.streaming && message.text.length > 0 && (
+          <span className="text-emerald-300">· streaming</span>
         )}
         {message.interrupted && (
           <span className="ml-2 rounded bg-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-300">
@@ -103,7 +109,20 @@ function Bubble({ message }: { message: ChatMessage }) {
       <div
         className={`whitespace-pre-wrap text-sm ${message.interrupted ? "text-zinc-500" : "text-zinc-100"}`}
       >
-        {message.text || (message.streaming ? "▌" : "")}
+        {message.text ? (
+          <>
+            {message.text}
+            {message.streaming && (
+              <span className="ml-0.5 animate-pulse">▌</span>
+            )}
+          </>
+        ) : message.streaming ? (
+          <span className="italic text-zinc-500">
+            CLI 부팅·인증 체크 중… (CLI 모드는 첫 응답까지 ~25s 걸릴 수 있음)
+          </span>
+        ) : (
+          ""
+        )}
       </div>
     </div>
   );

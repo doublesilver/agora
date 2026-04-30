@@ -282,22 +282,77 @@ export async function runSession(state: SessionState): Promise<void> {
         ts: now(),
       });
       let fullText = "";
+      let firstTokenSeen = false;
+      const iter = result.stream[Symbol.asyncIterator]();
       try {
-        for await (const chunk of result.stream) {
-          fullText += chunk;
+        // 첫 토큰 도착 전까지 AGENT_FIRST_TOKEN_TIMEOUT_MS 캡. 늦으면 round abort + timeout.
+        const firstChunkRace = await Promise.race<{
+          kind: "first" | "done" | "timeout";
+          value?: string;
+        }>([
+          (async () => {
+            const r = await iter.next();
+            if (r.done) return { kind: "done" as const };
+            return { kind: "first" as const, value: r.value };
+          })(),
+          new Promise((resolve) =>
+            setTimeout(
+              () => resolve({ kind: "timeout" as const }),
+              AGENT_FIRST_TOKEN_TIMEOUT_MS,
+            ),
+          ),
+        ]);
+
+        if (firstChunkRace.kind === "timeout") {
+          // 발화자 강제 중단 + 이번 라운드의 이 발화자만 timeout 처리.
+          state.roundAbort.abort("first-token-timeout");
+          emitEvent(state, {
+            type: "agent_timeout",
+            agentId: speaker.id,
+            turn: state.turn,
+            timeoutMs: AGENT_FIRST_TOKEN_TIMEOUT_MS,
+            ts: now(),
+          });
+          // 빈 agent_end로 streaming bubble 정리 → UI가 timeout 메시지로 마킹.
+          emitEvent(state, {
+            type: "agent_end",
+            agentId: speaker.id,
+            turn: state.turn,
+            fullText: "",
+            interrupted: true,
+            ts: now(),
+          });
+          continue;
+        }
+
+        if (firstChunkRace.kind === "first" && firstChunkRace.value) {
+          firstTokenSeen = true;
+          fullText += firstChunkRace.value;
           emitEvent(state, {
             type: "token",
             agentId: speaker.id,
             turn: state.turn,
-            text: chunk,
+            text: firstChunkRace.value,
             ts: now(),
           });
+        }
+
+        while (true) {
           if (state.sessionAbort.signal.aborted) break;
-          // 시간 캡 청크 단위 체크
           if (now() - state.startedAt >= MAX_SESSION_DURATION_MS) {
             state.sessionAbort.abort("time");
             break;
           }
+          const r = await iter.next();
+          if (r.done) break;
+          fullText += r.value;
+          emitEvent(state, {
+            type: "token",
+            agentId: speaker.id,
+            turn: state.turn,
+            text: r.value,
+            ts: now(),
+          });
         }
       } catch (err) {
         if (!isAbortError(err)) {

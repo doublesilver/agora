@@ -33,6 +33,24 @@ export interface ChatMessage {
   streaming?: boolean;
 }
 
+export type AgentPhase =
+  | "idle"
+  | "thinking"
+  | "streaming"
+  | "passed"
+  | "timeout"
+  | "error";
+
+export interface AgentRuntimeStats {
+  phase: AgentPhase;
+  lastTurn: number | null;
+  inputTokens: number;
+  outputTokens: number;
+  startedAt: number | null;
+  firstTokenAt: number | null;
+  endedAt: number | null;
+}
+
 export interface SessionView {
   sessionId: string | null;
   status: SessionStatus | "setup";
@@ -43,4 +61,8 @@ export interface SessionView {
   passedRecent: Partial<Record<AgentId, number>>;
   errorRecent: { agentId: AgentId; message: string; turn: number } | null;
   endReason: string | null;
+  /** 현재 발언자 — 직렬 라운드의 핫스팟 표시. */
+  activeSpeaker: AgentId | null;
+  /** 에이전트별 누적 통계 — 사이드바·헤더 인디케이터에 사용. */
+  agentStats: Partial<Record<AgentId, AgentRuntimeStats>>;
 }
