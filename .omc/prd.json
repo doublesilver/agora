@@ -52,7 +52,7 @@
       "id": "US-M4",
       "title": "오케스트레이터 + 강건성 (직렬 라운드 + 타임아웃·에러·예산·시간캡)",
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "estimateHours": 3,
       "acceptanceCriteria": [
         "src/lib/transcript.ts in-memory 배열 + push/snapshot 메서드 존재",
