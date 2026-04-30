@@ -73,15 +73,23 @@ GEMINI_API_KEY=
 
 ## 5. CLI 모드 사용법 + 트러블슈팅
 
-CLI 모드는 사용자 머신에 이미 OAuth/구독으로 인증된 1st-party CLI를 spawn해서 활용한다 (운영 통찰 §7 참조).
+CLI 모드는 사용자 머신에 이미 OAuth/구독으로 인증된 1st-party CLI를 spawn해서 활용한다 (운영 통찰 §7 참조). 3종 모두 지원.
 
 ```bash
 # 사전 확인
-which claude     # /opt/homebrew/bin/claude 또는 동등 경로
-claude --version # 실행 가능 여부
+which claude codex gemini   # 3개 모두 PATH 에 있으면 OK
+claude --version
+codex --version
+gemini --version
 ```
 
-CLI 미설치/미인증 시 CLI 모드 선택은 가능하지만 라운드에서 `agent_error` 발생 후 PASS로 폴백된다.
+각 CLI 호출 시그니처 (어댑터 내부에서 자동):
+
+- Claude: `claude -p "<prompt>" --output-format stream-json --verbose`
+- Codex: `codex exec --json --ephemeral --skip-git-repo-check --sandbox read-only "<prompt>"`
+- Gemini: `gemini -p "<prompt>" -y -o json -m gemini-2.5-pro`
+
+CLI 미설치/미인증·구독 한도 초과 시 라운드에서 `agent_error` 발생 후 PASS로 폴백 → 다음 라운드는 정상 시도.
 
 | 증상                                      | 원인                                    | 해결                         |
 | ----------------------------------------- | --------------------------------------- | ---------------------------- |
