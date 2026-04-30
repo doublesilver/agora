@@ -120,6 +120,10 @@ function Bubble({ message }: { message: ChatMessage }) {
           <span className="italic text-zinc-500">
             CLI 부팅·인증 체크 중… (CLI 모드는 첫 응답까지 ~25s 걸릴 수 있음)
           </span>
+        ) : message.interrupted ? (
+          <span className="italic text-zinc-600">
+            (응답 시간 초과 또는 끼어들기로 중단됨)
+          </span>
         ) : (
           ""
         )}
