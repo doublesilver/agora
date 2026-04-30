@@ -87,7 +87,7 @@
       "id": "US-M6-V1",
       "title": "UI 동작하는 최소 (LeftPanel 인증 + ChatView 토큰 스트림 + STOP)",
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "estimateHours": 3,
       "acceptanceCriteria": [
         "src/components/LeftPanel.tsx 존재 + 에이전트 3행 활성 토글 + 모드 [api|cli] + API 키 input(type=password) + 시스템 프롬프트 defaultValue 시드",
@@ -103,7 +103,7 @@
       "id": "US-M6-V2",
       "title": "UI 개입·핫스왑·Export·예산·시간캡 + 백업 녹화",
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "estimateHours": 2.8,
       "acceptanceCriteria": [
         "InterventionInput에 모드 토글 [Interrupt|Queue] 추가, 인터럽트 시 진행 중 메시지 (interrupted) 배지 표시",
