@@ -1,0 +1,173 @@
+{
+  "project": "Agora — Multi-Agent Collaboration Tool (베이글코드 채용 과제)",
+  "deadline": "2026-05-03T23:59:00+09:00",
+  "groundTruth": ["AGENTS.md", "PLAN.md"],
+  "stories": [
+    {
+      "id": "US-M0",
+      "title": "SDK/CLI 사전 정찰 + recon 스크립트 4개 커밋",
+      "priority": 2,
+      "passes": false,
+      "estimateHours": 1.5,
+      "acceptanceCriteria": [
+        "scripts/recon/anthropic.ts 파일 존재 + Anthropic SDK messages.stream으로 'hello' 호출 → 응답 텍스트 + usage(input/output 토큰) 출력 (인증 없으면 'skipped' 사유 1줄로 대체)",
+        "scripts/recon/openai.ts 파일 존재 + OpenAI SDK 현행 권장 API로 'hello' 호출 → 응답 + usage 출력",
+        "scripts/recon/gemini.ts 파일 존재 + @google/genai generateContentStream으로 'hello' 호출 → 응답 + usage 출력",
+        "scripts/recon/claude-cli.ts 파일 존재 + claude -p 비대화형으로 'hello' 호출 → stdout 라인 경계 보장 여부 출력",
+        ".omc/notes/m0-recon.md 파일 존재 + 4 경로별 1줄 이상 발견사항(권장 모델 ID + 라인 버퍼링 폴백 필요 여부) 기록",
+        "git log에 M0 정찰 커밋 1개 이상 (한글 메시지)"
+      ]
+    },
+    {
+      "id": "US-M1",
+      "title": "Next.js 15 스캐폴드 + 기본 .gitignore/.env.example/README skeleton",
+      "priority": 1,
+      "passes": false,
+      "estimateHours": 1,
+      "acceptanceCriteria": [
+        "package.json 존재 + Next.js 15 + TypeScript + Tailwind CSS 의존성 포함",
+        "src/app/page.tsx 기본 페이지 + src/app/layout.tsx 기본 레이아웃 존재",
+        "tsconfig.json strict: true 설정",
+        ".gitignore에 node_modules, .next, .env*, logs/*.jsonl 포함",
+        ".env.example 파일 존재 (빈 템플릿 + 주석)",
+        "README.md skeleton 존재 (제목 + TODO 섹션)",
+        "npm run dev 실행 시 http://localhost:3000 200 OK 응답"
+      ]
+    },
+    {
+      "id": "US-M2",
+      "title": "AgentAdapter 인터페이스 + Fake 어댑터 2개",
+      "priority": 3,
+      "passes": false,
+      "estimateHours": 1.5,
+      "acceptanceCriteria": [
+        "src/lib/agents/types.ts 존재 + AgentAdapter / SpeakInput / SpeakResult 타입 정의 (AGENTS.md 인터페이스와 일치)",
+        "src/lib/agents/role-seeds.ts 존재 + Claude/Codex/Gemini 기본 역할 시드 상수",
+        "src/lib/agents/fake.ts 존재 + 토큰 단위 50ms 지연 yield + 약 50% 확률 PASS 반환",
+        "tsx 노드 스크립트로 fake 어댑터 호출 → 토큰 스트림 + PASS 모두 관찰 가능",
+        "npm run typecheck 통과"
+      ]
+    },
+    {
+      "id": "US-M4",
+      "title": "오케스트레이터 + 강건성 (직렬 라운드 + 타임아웃·에러·예산·시간캡)",
+      "priority": 4,
+      "passes": false,
+      "estimateHours": 3,
+      "acceptanceCriteria": [
+        "src/lib/transcript.ts in-memory 배열 + push/snapshot 메서드 존재",
+        "src/lib/orchestrator.ts AGENTS.md 알고리즘 직렬 구현 (Promise.all 아닌 for-loop)",
+        "withTimeout 30초 + withErrorCapture 래퍼 어댑터 호출에 적용",
+        "MAX_TURNS=30 + MAX_SESSION_TOKENS=50000 + MAX_SESSION_DURATION_MS=300000 캡 모두 동작",
+        "src/lib/session-store.ts Map<sessionId, SessionState> 구현",
+        "tsx 노드 스크립트로 fake 2개 + 의도적 timeout/error/budget/time/STOP 5 시나리오 통과",
+        "npm run typecheck 통과"
+      ]
+    },
+    {
+      "id": "US-M5",
+      "title": "SSE API 8개 + JSONL 로거 + Node runtime 박제",
+      "priority": 5,
+      "passes": false,
+      "estimateHours": 3,
+      "acceptanceCriteria": [
+        "모든 src/app/api/*/route.ts 상단에 export const runtime = 'nodejs' + dynamic = 'force-dynamic' 박제 (R6)",
+        "src/lib/logger.ts append-only JSONL writer + flushSync",
+        "/api/session POST 작동 + session_start JSONL 라인 기록",
+        "/api/stream GET SSE 작동 + 30초 keepalive 코멘트",
+        "/api/intervene POST mode=interrupt|queue 둘 다 작동",
+        "/api/system-prompt POST 핫스왑 작동 + system_prompt_change 이벤트 기록",
+        "/api/pause /api/resume /api/stop POST 작동",
+        "/api/export GET md 다운로드 작동",
+        "curl 시나리오 7케이스(인터럽트/큐/일시정지/재개/핫스왑/Export-md/STOP) JSONL 라인 검증 통과",
+        "npm run typecheck 통과"
+      ]
+    },
+    {
+      "id": "US-M6-V1",
+      "title": "UI 동작하는 최소 (LeftPanel 인증 + ChatView 토큰 스트림 + STOP)",
+      "priority": 6,
+      "passes": false,
+      "estimateHours": 3,
+      "acceptanceCriteria": [
+        "src/components/LeftPanel.tsx 존재 + 에이전트 3행 활성 토글 + 모드 [api|cli] + API 키 input(type=password) + 시스템 프롬프트 defaultValue 시드",
+        "src/components/ChatView.tsx 단일 시간순 스레드 + 에이전트별 색깔 + 토큰 append + PASS 라벨 + 자동 스크롤",
+        "src/components/InterventionInput.tsx 입력창 + Send 버튼 (mode=queue 고정 V1)",
+        "src/components/HeaderBar.tsx 상태 뱃지 + 라운드 카운터",
+        "활성 2개 미만이면 시작 버튼 disabled, 시작 후 인증 락",
+        "fake 어댑터 2개로 브라우저 협업 시연 — 메시지 흐름·자동 스크롤·STOP 정상 동작",
+        "npm run typecheck + npm run lint 통과"
+      ]
+    },
+    {
+      "id": "US-M6-V2",
+      "title": "UI 개입·핫스왑·Export·예산·시간캡 + 백업 녹화",
+      "priority": 7,
+      "passes": false,
+      "estimateHours": 2.8,
+      "acceptanceCriteria": [
+        "InterventionInput에 모드 토글 [Interrupt|Queue] 추가, 인터럽트 시 진행 중 메시지 (interrupted) 배지 표시",
+        "PAUSE/RESUME 버튼 + paused 상태 시각화",
+        "PromptEditor 컴포넌트 + 진행 중 시스템 프롬프트 핫스왑 + Reset to default 버튼",
+        "HeaderBar에 Export Markdown 버튼 + 토큰 예산 진행률 바",
+        "토큰 캡 도달 시 자동 STOP UI 표시",
+        "시간 캡 도달 시 자동 STOP UI 표시 (session_end.reason=time_exceeded SSE 처리)",
+        "fake 어댑터로 백업 녹화 1회 (assets/demo-fake.mp4 또는 동등) 확보",
+        "npm run typecheck + npm run lint 통과"
+      ]
+    },
+    {
+      "id": "US-M3",
+      "title": "실제 어댑터 4개 (Claude API + GPT API + Gemini API + Claude CLI)",
+      "priority": 8,
+      "passes": false,
+      "estimateHours": 4,
+      "acceptanceCriteria": [
+        "src/lib/agents/claude-api.ts @anthropic-ai/sdk 스트리밍 + usage() 콜백 구현",
+        "src/lib/agents/gpt-api.ts openai SDK 스트리밍 + usage 메타 추출",
+        "src/lib/agents/gemini-api.ts @google/genai generateContentStream + usage 추출",
+        "src/lib/agents/claude-cli.ts child_process.spawn + stdout 라인 파싱 (R7 폴백 적용) + 글자수/4 usage 추정",
+        "어댑터 4개 모두 시스템 프롬프트 말미에 [PASS] 규약 강제 주입",
+        "어댑터 4개 모두 trim 후 정확히 [PASS]이면 kind:'pass' 반환",
+        "어댑터 4개 모두 AbortSignal 연결 (인터럽트 시 즉시 중단)",
+        "두 API 어댑터(Claude + GPT)로 활성 세션 1회 협업 — 라운드 ≥3턴, JSONL 라인 ≥20",
+        "Claude CLI 단독 협업 1회 (인증된 머신) 통과",
+        "npm run typecheck 통과"
+      ]
+    },
+    {
+      "id": "US-M7",
+      "title": "README + .env.example 마무리 + 클론 검증",
+      "priority": 9,
+      "passes": false,
+      "estimateHours": 2,
+      "acceptanceCriteria": [
+        "README.md 8개 섹션(개요/사전요구/설치실행/환경변수/CLI트러블슈팅/JSONL위치/운영통찰/제출물) 모두 존재",
+        "운영 통찰 섹션: 분량 300~500자 + 강제 3항목(OAuth 미구현 사유/직렬 라운드 사유/인터럽트 라운드만 끊는 사유) + 외부 참조 링크 1개 이상",
+        ".env.example 최종 정리 (빈 템플릿 + 주석)",
+        "임시 디렉토리에서 git clone → npm i → npm run dev 시나리오 처음부터 끝까지 통과",
+        "scripts/scrub-check.sh 시크릿 grep 자동 검증 스크립트 존재 + 실행 통과"
+      ]
+    },
+    {
+      "id": "US-M8",
+      "title": "본편 시연 녹화 + 샘플 JSONL + GitHub 푸시 제출",
+      "priority": 10,
+      "passes": false,
+      "estimateHours": 2,
+      "acceptanceCriteria": [
+        "본편 화면 녹화 mp4(또는 mov) 파일 assets/ 또는 README 링크 — 길이 90~150초",
+        "녹화 내 30초 초과 단일 발화 없음 (timeout 미발동)",
+        "녹화 시 API 키 화면 노출 없음 (input type=password 마스킹 + DevTools sessionStorage 닫힘)",
+        "logs/sample-session.jsonl 1개 커밋 + scrub-check 통과",
+        "GitHub repo public 푸시 + main 브랜치 최신 + 마지막 커밋 SHA 메모 (또는 zip 생성)"
+      ]
+    }
+  ],
+  "metadata": {
+    "totalEstimateHours": 23.8,
+    "bufferHours": 7,
+    "consensus": "ralplan APPROVE 라운드 2 (2026-04-30)",
+    "differentiator": "사용자가 AI들의 토론에 끼어들 수 있는 도구"
+  }
+}

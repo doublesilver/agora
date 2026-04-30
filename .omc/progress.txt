@@ -1,0 +1,15 @@
+# Agora Progress Log
+
+## 2026-04-30
+
+### Setup
+- ralplan APPROVE 라운드 2 (점수 25/25 사실상, ITERATE 4건 봉합 후 신규 차단 0건).
+- AGENTS.md / PLAN.md ground truth, 둘 다 라인 박제 검증 통과.
+- PRD 10 stories: M1(scaffold)→M0(recon)→M2(fake)→M4(orch)→M5(SSE)→M6-V1→M6-V2→M3(real adapters)→M7(README)→M8(record/submit).
+- 우선순위 swap: 원래 PLAN은 M0→M1이었으나 recon 스크립트가 SDK import에 의존하므로 M1 scaffold 먼저 깔아야 합리적.
+- 환경: Node v25.8.1, npm 11.11.0. CLI 3종(claude/codex/gemini) 모두 PATH에 존재. API 키는 환경에 없음 → M0 API 경로는 "skipped" 처리, CLI 경로는 실제 정찰 가능.
+
+### Conventions Discovered
+- 사용자 머신: macOS Darwin 25.3.0 (M1 16GB), zsh.
+- 프로젝트 루트: ~/Projects/agora/.
+- AGENTS.md / PLAN.md / .omc/ 디렉토리는 scaffold 전 이미 존재 → 삭제·덮어쓰기 금지. 임시 dir에서 scaffold 후 rsync로 병합.

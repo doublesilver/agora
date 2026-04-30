@@ -32,6 +32,16 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# session logs (jsonl) — sample만 커밋
+logs/*.jsonl
+!logs/sample-session.jsonl
+
+# omc 런타임 상태 (sessions/state/memory) — 추적 제외, prd/progress/notes만 커밋
+.omc/sessions/
+.omc/state/
+.omc/project-memory.json
 
 # vercel
 .vercel

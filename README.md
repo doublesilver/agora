@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agora
 
-## Getting Started
+여러 AI 에이전트가 직렬 라운드로 자유 메시지를 주고받으며 사용자의 프롬프트를 협업 처리하는 웹 도구. 사용자는 토론에 끼어들거나 일시정지·종료하며 전체 전사를 관찰할 수 있다.
 
-First, run the development server:
+베이글코드 신작팀 AI 개발자 채용 과제 (2026-05-03 마감) 제출용.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+> **현재 진행 상태**: 개발 중 (M0~M8 마일스톤). 자세한 명세는 `AGENTS.md`, 작업 계획은 `PLAN.md`, 진행 로그는 `.omc/progress.txt`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## TODO 섹션 (M7 단계에서 채움)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- [ ] 개요 + 스크린샷/녹화 링크
+- [ ] 사전 요구사항 (Node 20+, 선택: claude/codex/gemini CLI 인증)
+- [ ] 설치·실행 (`git clone && npm i && npm run dev`)
+- [ ] 환경변수 (없음 — 키는 UI 입력)
+- [ ] CLI 모드 사용법 + 트러블슈팅 (`which claude` 등)
+- [ ] JSONL 로그 위치 + 스키마 요약
+- [ ] **운영 통찰** (차별화 핵심)
+  - 분량 300~500자
+  - 강제 포함 3항목: ① 왜 표준 OAuth 미구현 ② 왜 직렬 라운드 자유 메시지 ③ 왜 인터럽트가 라운드만 끊고 세션 안 끊음
+  - 외부 참조 링크 1+
+- [ ] 제출물 안내 (AGENTS.md, PLAN.md, 샘플 JSONL, 화면 녹화)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 빠른 참조
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| 문서                | 역할                                                   |
+| ------------------- | ------------------------------------------------------ |
+| `AGENTS.md`         | 명세 단일 출처 (포지셔닝·ADR·아키텍처·검증 체크리스트) |
+| `PLAN.md`           | 마일스톤 M0~M8 작업 계획                               |
+| `.omc/prd.json`     | 스토리·인수기준 PRD                                    |
+| `.omc/progress.txt` | 진행 로그·발견사항                                     |
