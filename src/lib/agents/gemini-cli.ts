@@ -72,7 +72,13 @@ export function createGeminiCliAdapter(
       });
       // 'close'는 모든 stdio 스트림이 닫힌 후 발생 — stdoutBuf 완결 보장.
       child.on("close", (code, signal) => {
-        if (code !== 0 && signal !== "SIGTERM" && !error) {
+        const aborted = input.signal.aborted;
+        const sigterm = signal === "SIGTERM" || code === 143 || code === 130;
+        if (aborted || sigterm) {
+          finish();
+          return;
+        }
+        if (code !== 0 && !error) {
           error = new Error(
             `gemini CLI exited code=${code} signal=${signal} stderr=${stderrTail.slice(-300)}`,
           );

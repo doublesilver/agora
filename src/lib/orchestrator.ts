@@ -365,7 +365,8 @@ export async function runSession(state: SessionState): Promise<void> {
           });
         }
       }
-      const interrupted = state.roundAbort.signal.aborted;
+      const interrupted =
+        state.roundAbort.signal.aborted || state.sessionAbort.signal.aborted;
 
       // 응답 trim 후 정확히 PASS면 발언 아닌 PASS로 처리
       if (fullText.trim() === PASS_TOKEN) {

@@ -118,11 +118,23 @@ export function createClaudeCliAdapter(
         finish();
       });
       child.on("exit", (code, signal) => {
+        // 사용자 STOP/인터럽트로 SIGTERM 받으면 input.signal.aborted=true → 에러 아닌 정상 종료.
+        const aborted = input.signal.aborted;
+        const sigterm = signal === "SIGTERM" || code === 143 || code === 130;
+        if (aborted || sigterm) {
+          // assistant 청크 없이 result만 도착한 경우 처리 후 finish
+          if (cumulativeText.length === 0 && finalResult) {
+            push(finalResult);
+          }
+          finish();
+          return;
+        }
+        // (이하 기존 분기)
         // assistant 청크가 없었지만 result만 도착한 경우 finalResult를 한 번에 emit
         if (cumulativeText.length === 0 && finalResult) {
           push(finalResult);
         }
-        if (code !== 0 && signal !== "SIGTERM" && !error) {
+        if (code !== 0 && !error) {
           error = new Error(
             `claude CLI exited code=${code} signal=${signal} stderr=${stderrTail.slice(-200)}`,
           );

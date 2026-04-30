@@ -101,7 +101,13 @@ export function createCodexCliAdapter(
         finish();
       });
       child.on("exit", (code, signal) => {
-        if (code !== 0 && signal !== "SIGTERM" && !error) {
+        const aborted = input.signal.aborted;
+        const sigterm = signal === "SIGTERM" || code === 143 || code === 130;
+        if (aborted || sigterm) {
+          finish();
+          return;
+        }
+        if (code !== 0 && !error) {
           error = new Error(
             `codex CLI exited code=${code} signal=${signal} stderr=${stderrTail.slice(-200)}`,
           );
