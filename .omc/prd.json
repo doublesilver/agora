@@ -7,7 +7,7 @@
       "id": "US-M0",
       "title": "SDK/CLI 사전 정찰 + recon 스크립트 4개 커밋",
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "estimateHours": 1.5,
       "acceptanceCriteria": [
         "scripts/recon/anthropic.ts 파일 존재 + Anthropic SDK messages.stream으로 'hello' 호출 → 응답 텍스트 + usage(input/output 토큰) 출력 (인증 없으면 'skipped' 사유 1줄로 대체)",
@@ -22,7 +22,7 @@
       "id": "US-M1",
       "title": "Next.js 15 스캐폴드 + 기본 .gitignore/.env.example/README skeleton",
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "estimateHours": 1,
       "acceptanceCriteria": [
         "package.json 존재 + Next.js 15 + TypeScript + Tailwind CSS 의존성 포함",
@@ -38,7 +38,7 @@
       "id": "US-M2",
       "title": "AgentAdapter 인터페이스 + Fake 어댑터 2개",
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "estimateHours": 1.5,
       "acceptanceCriteria": [
         "src/lib/agents/types.ts 존재 + AgentAdapter / SpeakInput / SpeakResult 타입 정의 (AGENTS.md 인터페이스와 일치)",

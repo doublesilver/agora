@@ -11,7 +11,8 @@
     "recon:anthropic": "tsx scripts/recon/anthropic.ts",
     "recon:openai": "tsx scripts/recon/openai.ts",
     "recon:gemini": "tsx scripts/recon/gemini.ts",
-    "recon:claude-cli": "tsx scripts/recon/claude-cli.ts"
+    "recon:claude-cli": "tsx scripts/recon/claude-cli.ts",
+    "verify:fake": "tsx scripts/verify-fake.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
