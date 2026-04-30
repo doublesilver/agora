@@ -120,7 +120,7 @@
       "id": "US-M3",
       "title": "실제 어댑터 4개 (Claude API + GPT API + Gemini API + Claude CLI)",
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "estimateHours": 4,
       "acceptanceCriteria": [
         "src/lib/agents/claude-api.ts @anthropic-ai/sdk 스트리밍 + usage() 콜백 구현",
