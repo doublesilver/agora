@@ -139,7 +139,7 @@
       "id": "US-M7",
       "title": "README + .env.example 마무리 + 클론 검증",
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "estimateHours": 2,
       "acceptanceCriteria": [
         "README.md 8개 섹션(개요/사전요구/설치실행/환경변수/CLI트러블슈팅/JSONL위치/운영통찰/제출물) 모두 존재",

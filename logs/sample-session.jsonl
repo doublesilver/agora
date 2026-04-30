@@ -1,0 +1,49 @@
+{"type":"session_start","sessionId":"519383f2-48e4-4e40-96bd-b17febf7d3f7","agents":[{"id":"claude","mode":"api"},{"id":"codex","mode":"api"}],"systemPrompts":{"claude":"You are the structurer/reviewer. Restate the goal in one sentence, then surface hidden assumptions, organize options into a clean decision tree, and call out missing context. Prefer crisp summaries over verbose monologue.","codex":"You are the implementer/concretizer. Translate ideas into concrete steps, code sketches, or system designs. When others are abstract, push for what would actually run. Cite tradeoffs in terms of time and reliability."},"userPrompt":"design a survival game energy system","ts":1777542997355}
+{"type":"status","value":"running","ts":1777542997355}
+{"type":"agent_start","agentId":"claude","turn":0,"ts":1777542997357}
+{"type":"token","agentId":"claude","turn":0,"text":"[fake:claude]","ts":1777542997409}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542997461}
+{"type":"token","agentId":"claude","turn":0,"text":"noted","ts":1777542997513}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542997563}
+{"type":"token","agentId":"claude","turn":0,"text":"(re:","ts":1777542997616}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542997668}
+{"type":"token","agentId":"claude","turn":0,"text":"\"design","ts":1777542997721}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542997773}
+{"type":"token","agentId":"claude","turn":0,"text":"a","ts":1777542997825}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542997878}
+{"type":"token","agentId":"claude","turn":0,"text":"survival","ts":1777542997931}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542997985}
+{"type":"token","agentId":"claude","turn":0,"text":"game","ts":1777542998038}
+{"type":"system_prompt_change","agentId":"claude","prompt":"new persona for hotswap test","ts":1777542998080}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542998090}
+{"type":"token","agentId":"claude","turn":0,"text":"energy","ts":1777542998142}
+{"type":"token","agentId":"claude","turn":0,"text":" ","ts":1777542998192}
+{"type":"agent_end","agentId":"claude","turn":0,"fullText":"[fake:claude] noted (re: \"design a survival game energy ","interrupted":true,"ts":1777542998203}
+{"type":"usage","agentId":"claude","turn":0,"inputTokens":9,"outputTokens":14,"sessionTotal":23,"ts":1777542998203}
+{"type":"user_message","text":"queued message","mode":"queue","ts":1777542998203}
+{"type":"user_message","text":"interrupting now","mode":"interrupt","ts":1777542998203}
+{"type":"agent_pass","agentId":"codex","turn":1,"ts":1777542998203}
+{"type":"agent_pass","agentId":"claude","turn":1,"ts":1777542998203}
+{"type":"agent_start","agentId":"claude","turn":2,"ts":1777542998204}
+{"type":"token","agentId":"claude","turn":2,"text":"[fake:claude]","ts":1777542998255}
+{"type":"status","value":"paused","ts":1777542998306}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542998307}
+{"type":"token","agentId":"claude","turn":2,"text":"noted","ts":1777542998357}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542998409}
+{"type":"token","agentId":"claude","turn":2,"text":"(re:","ts":1777542998460}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542998511}
+{"type":"token","agentId":"claude","turn":2,"text":"\"interrupting","ts":1777542998563}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542998614}
+{"type":"token","agentId":"claude","turn":2,"text":"now\").","ts":1777542998667}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542998719}
+{"type":"token","agentId":"claude","turn":2,"text":"proceeding","ts":1777542998771}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542998823}
+{"type":"token","agentId":"claude","turn":2,"text":"with","ts":1777542998875}
+{"type":"status","value":"running","ts":1777542998920}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542998926}
+{"type":"token","agentId":"claude","turn":2,"text":"stub","ts":1777542999000}
+{"type":"token","agentId":"claude","turn":2,"text":" ","ts":1777542999051}
+{"type":"agent_end","agentId":"claude","turn":2,"fullText":"[fake:claude] noted (re: \"interrupting now\"). proceeding with stub ","interrupted":false,"ts":1777542999101}
+{"type":"usage","agentId":"claude","turn":2,"inputTokens":31,"outputTokens":17,"sessionTotal":71,"ts":1777542999102}
+{"type":"session_end","reason":"user_stop","ts":1777542999102}
+{"type":"status","value":"stopped","ts":1777542999102}

@@ -13,3 +13,14 @@
 - 사용자 머신: macOS Darwin 25.3.0 (M1 16GB), zsh.
 - 프로젝트 루트: ~/Projects/agora/.
 - AGENTS.md / PLAN.md / .omc/ 디렉토리는 scaffold 전 이미 존재 → 삭제·덮어쓰기 금지. 임시 dir에서 scaffold 후 rsync로 병합.
+
+## 2026-04-30 — M0~M7 완료 후속 메모
+
+- M3 어댑터 4개: Claude API/GPT API/Gemini API/Claude CLI 구현 + 컴파일 통과.
+  Claude CLI는 실호출 검증 통과 ("Hello, nice to meet you!" + usage 6/15).
+  나머지 3 API는 키 미보유로 실호출 검증은 M8 데모 시점으로 이월. 빈 키 throw 검증은 통과.
+- M5 SSE API 7케이스 + JSONL 49줄 + 시크릿 0건 검증 완료.
+- M6 V1+V2 통합 구현 (인터럽트/큐, PAUSE/RESUME, 핫스왑, Export, 예산바, 시간캡 모두 UI 반영).
+- M7 README 8섹션, 운영 통찰 3 강제 항목 + 외부 링크 박제, scrub-check 자동 검증.
+- 클론 검증 통과: 임시 dir에 git clone → npm install → typecheck 클린.
+- 잔여: M8 (본편 시연 녹화 + 백업 녹화 + GitHub 푸시 + zip 옵션).
