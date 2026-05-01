@@ -142,12 +142,19 @@ async function callGeminiCli(
   signal: AbortSignal,
 ): Promise<string> {
   const prompt = `${systemPrompt}\n\n---\n\n${userText}`;
-  return runCliOneshot(
+  // -m 플래그는 사용자 ~/.gemini/GEMINI.md model과 충돌(쉼표 list)하므로 생략.
+  const raw = await runCliOneshot(
     resolveCliBin("gemini"),
-    ["-p", prompt, "-y", "-m", "gemini-2.5-flash"],
+    ["-p", prompt, "-y"],
     signal,
     CLI_TIMEOUT_MS,
   );
+  // 응답 앞 배너(2-space indent 라인 + 빈 줄) 제거. 시안: "  Gemini CLI — ..." 3줄.
+  const lines = raw.split("\n");
+  let i = 0;
+  while (i < lines.length && /^\s+\S/.test(lines[i])) i++;
+  while (i < lines.length && lines[i].trim() === "") i++;
+  return lines.slice(i).join("\n").trim();
 }
 
 async function callSummarizer(
