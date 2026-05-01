@@ -436,55 +436,85 @@ function FinalArtifactCard({ view }: { view: SessionView }) {
 
 function SetupHints() {
   return (
-    <div className="m-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12 text-ink">
-      <div className="flex items-baseline justify-between border-b border-ink pb-3 font-mono text-[10px] uppercase tracking-[0.3em]">
-        <span>ISSUE 001 · VOL.1</span>
-        <span className="text-ink2">// SETUP — 인증 → 주제 → 시작</span>
-        <span className="text-ink3">EST. 2026</span>
+    <div className="flex h-full w-full flex-col text-ink">
+      {/* Brutal masthead bar — full bleed, bg-ink */}
+      <div className="flex items-center justify-between border-b-2 border-ink bg-ink px-6 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-paper">
+        <span>ISSUE 001 · VOL.1 · STANDBY</span>
+        <span className="text-paper2">// SETUP — AUTH → TOPIC → GO</span>
+        <span className="text-paper2">EST. 2026 · ROUND 00</span>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-ink2">
-          // BRIEF
+      {/* Hero masthead grid — wordmark + editorial sidebar */}
+      <div className="grid grid-cols-[1fr_360px] border-b-2 border-ink">
+        <div className="flex flex-col justify-between border-r-2 border-ink px-8 py-10">
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-ink2">
+            // BRIEF · 호외 — 멀티 AI 토론
+          </div>
+          <h1 className="mt-4 font-mono text-[120px] font-black uppercase leading-[0.84] tracking-[-0.06em] text-ink">
+            AGORA<span className="text-ink3">::</span>
+            <br />
+            FORUM
+          </h1>
+          <div className="mt-6 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink2">
+            ─── 사용자가 끼어들 수 있는 멀티 AI 토론 도구 ───
+          </div>
         </div>
-        <h2 className="font-mono text-[56px] font-extrabold uppercase leading-[0.92] tracking-[-0.04em] text-ink">
-          AGORA<span className="text-ink3">::</span>FORUM
-        </h2>
-        <p className="max-w-xl font-mono text-[13.5px] leading-[1.7] text-ink2">
-          여러 AI 에이전트가{" "}
-          <span className="bf-highlight font-bold">직렬 라운드</span>로 자유롭게
-          토론합니다. 사용자는 진행 중 발언을{" "}
-          <span className="bf-highlight font-bold">즉시 끊고</span> 의견을
-          끼우거나 다음 라운드에 보탤 수 있고, 모든 토큰은 실시간으로 스트리밍,
-          모든 이벤트는 JSONL로 기록됩니다.
-        </p>
+        <aside className="flex flex-col justify-between gap-4 bg-paper2 px-6 py-10">
+          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-ink3">
+            // EDITORIAL
+          </div>
+          <p className="font-mono text-[13px] leading-[1.7] text-ink">
+            여러 AI 에이전트가{" "}
+            <span className="bf-highlight font-bold">직렬 라운드</span>로
+            토론합니다. 사용자는 진행 중 발언을{" "}
+            <span className="bf-highlight font-bold">즉시 끊고</span> 의견을
+            끼우거나 다음 라운드에 보탤 수 있습니다.
+          </p>
+          <p className="font-mono text-[12px] leading-[1.65] text-ink2">
+            모든 토큰은 실시간으로 스트리밍되고, 모든 이벤트는 JSONL로 기록되며,
+            토론 종료 시 결과 정리 담당이 한 장의 호외로 압축합니다.
+          </p>
+          <div className="border-t-2 border-ink pt-3 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-ink">
+            ※ 토론에 끼어들 권한 — USER ONLY
+          </div>
+        </aside>
       </div>
 
-      <div className="border-y-2 border-ink">
-        <div className="grid grid-cols-3 divide-x divide-ink">
-          {[
-            ["01", "AUTH", "AI 에이전트 ≥2 활성·인증"],
-            ["02", "TOPIC", "토론 주제 입력 + (선택) 결과 정리 담당"],
-            ["03", "GO", "세션 시작 → 진행 중 끼어들기"],
-          ].map(([n, label, body]) => (
-            <div key={n} className="px-4 py-4">
-              <div className="font-mono text-[28px] font-extrabold leading-none tracking-[-0.04em] text-ink">
-                {n}
-              </div>
-              <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink3">
-                / {label}
-              </div>
-              <div className="mt-1 font-mono text-[11px] leading-relaxed text-ink2">
-                {body}
-              </div>
+      {/* 3-step setup ledger — full bleed, big numerals */}
+      <div className="grid grid-cols-3 divide-x-2 divide-ink border-b-2 border-ink">
+        {[
+          ["01", "AUTH", "AI 에이전트 ≥2 활성·인증", "→ ⚙ SETTINGS · AGENTS"],
+          [
+            "02",
+            "TOPIC",
+            "토론 주제 입력 + (선택) 결과 정리 담당",
+            "→ SIDEBAR · TOPIC.draft",
+          ],
+          ["03", "GO", "▶ START SESSION → 진행 중 끼어들기", "→ R01 BEGINS"],
+        ].map(([n, label, body, hint]) => (
+          <div key={n} className="flex flex-col gap-3 px-6 py-6">
+            <div className="font-mono text-[64px] font-black leading-none tracking-[-0.05em] text-ink">
+              {n}
             </div>
-          ))}
-        </div>
+            <div className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-ink">
+              / {label}
+            </div>
+            <div className="font-mono text-[12px] leading-[1.6] text-ink2">
+              {body}
+            </div>
+            <div className="mt-auto border-t border-ink pt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink3">
+              {hint}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-ink3">
-        <span>// READY WHEN: ACTIVE_AGENTS≥2 && TOPIC.length&gt;0</span>
-        <span>EDIT-RIGHT → USER</span>
+      {/* Predicate footer — terminal-style */}
+      <div className="flex items-center justify-between bg-ink px-6 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-paper">
+        <span>
+          // READY WHEN: ACTIVE_AGENTS ≥ 2 &amp;&amp; TOPIC.length &gt; 0
+        </span>
+        <span className="bg-highlight px-1 text-ink">EDIT-RIGHT → USER</span>
       </div>
     </div>
   );

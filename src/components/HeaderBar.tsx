@@ -43,63 +43,74 @@ export function HeaderBar({ view }: Props) {
     view.limits?.maxSessionDurationMs ?? MAX_SESSION_DURATION_MS;
   const pct = Math.min(100, Math.round((view.sessionTokens / tokenMax) * 100));
   return (
-    <header className="border-b-2 border-ink bg-paper">
-      {/* Top utility bar */}
-      <div className="flex items-center justify-between border-b border-ink px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink">
-        <span>AGORA/FORUM · v0.4.1</span>
-        <span className="text-ink2">
+    <header className="border-b-[3px] border-ink bg-paper">
+      {/* Top utility bar — brutal: bg-ink, paper text */}
+      <div className="flex items-center justify-between border-b-2 border-ink bg-ink px-5 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-paper">
+        <span>AGORA/FORUM · v0.4.1-rc</span>
+        <span className="text-paper2">
           //{" "}
-          {view.sessionId ? `sid:${view.sessionId.slice(0, 6)}` : "no session"}{" "}
-          · status: {view.status}
+          {view.sessionId ? `sid:${view.sessionId.slice(0, 8)}` : "no session"}{" "}
+          · status:{" "}
+          <span className="bg-highlight px-1 text-ink">{view.status}</span>
         </span>
         {view.sessionStartTs !== null && view.status !== "stopped" ? (
           <ServerTime startTs={view.sessionStartTs} durationMax={durationMax} />
         ) : (
-          <span className="text-ink3">— —</span>
+          <span className="text-paper2">— STANDBY —</span>
         )}
       </div>
 
       {/* Wordmark + meta grid */}
-      <div className="grid grid-cols-[1fr_360px] border-b border-ink">
-        <div className="border-r border-ink px-4 py-3">
-          <h1 className="font-mono text-[44px] font-extrabold uppercase leading-[0.92] tracking-[-0.04em] text-ink">
+      <div className="grid grid-cols-[1fr_400px] border-b-2 border-ink">
+        <div className="border-r-2 border-ink px-5 py-5">
+          <h1 className="font-mono text-[72px] font-black uppercase leading-[0.86] tracking-[-0.05em] text-ink">
             AGORA<span className="text-ink3">::</span>FORUM
           </h1>
-          <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-ink2">
+          <div className="mt-3 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink2">
             사용자가 끼어들 수 있는 멀티 AI 토론 — N=
-            {view.agents.length || 0} AGENTS · ROUND {pad2(view.turn)} ·{" "}
-            <span className={STATUS_TONE[view.status]}>
+            <span className="text-ink">{view.agents.length || 0} AGENTS</span> ·
+            ROUND <span className="text-ink">{pad2(view.turn)}</span> ·{" "}
+            <span className={`bg-highlight px-1 ${STATUS_TONE[view.status]}`}>
               {STATUS_LABEL[view.status]}
             </span>
           </div>
         </div>
-        <div className="flex flex-col justify-between gap-1.5 px-4 py-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink3">
+        <div className="flex flex-col justify-between gap-2 bg-paper2 px-5 py-4">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-ink3">
             // FLOOR
           </span>
-          <div className="font-mono text-[14px] font-bold leading-[1.3] tracking-[-0.01em] text-ink">
+          <div className="font-mono text-[18px] font-black leading-[1.15] tracking-[-0.02em] text-ink">
             {view.activeSpeaker ? (
-              <span className="bf-highlight">
-                {AGENT_LABEL[view.activeSpeaker]} ON FLOOR
+              <span className="bg-highlight px-1">
+                ◉ {AGENT_LABEL[view.activeSpeaker]} · ON FLOOR
               </span>
             ) : view.status === "stopped" ? (
-              <span>SESSION ENDED · {view.endReason ?? "—"}</span>
+              <span className="bg-ink px-1 text-paper">
+                ‖ ENDED · {view.endReason ?? "—"}
+              </span>
             ) : view.status === "idle" ? (
-              <span className="bf-highlight">USER TURN — INTERRUPT NOW</span>
+              <span className="bg-highlight px-1">
+                ※ USER TURN — INTERRUPT NOW
+              </span>
             ) : (
               <span className="text-ink2">— STANDBY —</span>
             )}
           </div>
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-ink3">
+          <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink2">
             <span>
-              TOK {view.sessionTokens.toLocaleString()}/
-              {tokenMax.toLocaleString()}{" "}
-              <span className={pct >= 90 ? "text-ink" : ""}>({pct}%)</span>
+              TOK{" "}
+              <span className="text-ink">
+                {view.sessionTokens.toLocaleString()}
+              </span>
+              /{tokenMax.toLocaleString()}{" "}
+              <span className={pct >= 90 ? "bg-ink px-1 text-paper" : ""}>
+                ({pct}%)
+              </span>
             </span>
             {view.sessionId && view.status !== "setup" && (
               <a
                 href={`/api/export?id=${view.sessionId}`}
-                className="border border-ink bg-paper px-2 py-0.5 text-ink hover:bg-ink hover:text-paper"
+                className="border-2 border-ink bg-paper px-3 py-1 text-ink hover:bg-ink hover:text-paper"
               >
                 ↓ EXPORT.MD
               </a>
