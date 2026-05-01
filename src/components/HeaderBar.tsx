@@ -42,10 +42,9 @@ function rotate<T>(arr: T[], shift: number): T[] {
 
 interface Props {
   view: SessionView;
-  onOpenPalette?: () => void;
 }
 
-export function HeaderBar({ view, onOpenPalette }: Props) {
+export function HeaderBar({ view }: Props) {
   const pct = Math.min(
     100,
     Math.round((view.sessionTokens / MAX_SESSION_TOKENS) * 100),
@@ -111,19 +110,6 @@ export function HeaderBar({ view, onOpenPalette }: Props) {
         >
           📥 Export
         </a>
-      )}
-      {onOpenPalette && (
-        <button
-          type="button"
-          onClick={onOpenPalette}
-          title="명령 팔레트 (⌘K)"
-          className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100"
-        >
-          <span>명령</span>
-          <kbd className="rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5 font-mono text-[10px] text-zinc-300">
-            ⌘K
-          </kbd>
-        </button>
       )}
     </div>
   );

@@ -418,7 +418,6 @@ export function LeftPanel(props: Props) {
           />
           <button
             type="button"
-            data-shortcut-target="start-session"
             disabled={!canStart}
             onClick={() => props.onStart(userPrompt)}
             className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none"

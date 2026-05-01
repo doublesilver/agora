@@ -138,35 +138,12 @@ export function InterventionInput({
             🤔 사용자 차례 — 메시지 보내거나 종료하세요
           </span>
         )}
-        <span className="ml-auto flex items-center gap-1 font-mono text-[10px] text-zinc-500">
-          <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5">
-            ⌘K
-          </kbd>
-          <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5">
-            ?
-          </kbd>
-          <kbd className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.5">
-            /
-          </kbd>
-        </span>
       </div>
       <div className="flex gap-2">
         <textarea
-          data-shortcut-target="intervention-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            // ⌘Enter / Ctrl+Enter — 즉시 끼어들기 모드로 강제 전송.
-            if (
-              e.key === "Enter" &&
-              (e.metaKey || e.ctrlKey) &&
-              !e.nativeEvent.isComposing
-            ) {
-              e.preventDefault();
-              if (mode !== "interrupt") setMode("interrupt");
-              void send();
-              return;
-            }
             if (
               e.key === "Enter" &&
               !e.shiftKey &&

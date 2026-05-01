@@ -281,41 +281,13 @@ function SetupHints() {
           <div className="flex flex-col gap-0.5">
             <span className="font-medium text-zinc-100">시작</span>
             <span className="text-[12px] text-zinc-500">
-              ‘세션 시작’ 또는{" "}
-              <kbd className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 font-mono text-[10px] text-zinc-300">
-                ⌘K
-              </kbd>{" "}
-              팔레트로 빠르게. 진행 중 언제든 끼어들기 가능.
+              좌측 ‘세션 시작’ 버튼을 누르면 토론이 시작됩니다. 진행 중 언제든
+              하단 입력창으로 끼어들 수 있어요.
             </span>
           </div>
         </li>
       </ol>
-
-      <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-zinc-500">
-        <span>단축키:</span>
-        <ShortcutChip keys={["⌘", "K"]} desc="명령 팔레트" />
-        <ShortcutChip keys={["?"]} desc="도움말" />
-        <ShortcutChip keys={["/"]} desc="입력 포커스" />
-        <ShortcutChip keys={["Space"]} desc="Pause/Resume" />
-        <ShortcutChip keys={["Esc"]} desc="Stop" />
-      </div>
     </div>
-  );
-}
-
-function ShortcutChip({ keys, desc }: { keys: string[]; desc: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-zinc-800/80 bg-zinc-950 px-1.5 py-0.5">
-      {keys.map((k, i) => (
-        <kbd
-          key={i}
-          className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 font-mono text-[10px] text-zinc-300"
-        >
-          {k}
-        </kbd>
-      ))}
-      <span className="text-zinc-500">{desc}</span>
-    </span>
   );
 }
 

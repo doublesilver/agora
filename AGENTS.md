@@ -229,12 +229,10 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 │   └── components/
 │       ├── LeftPanel.tsx               # 인증/시스템프롬프트/요약담당/컨트롤
 │       ├── ChatView.tsx                # 단일 시간순 스레드 + 실시간 요약 + 최종 산출물 카드
-│       ├── InterventionInput.tsx       # 입력창 + mode 토글 + Send + ⌘Enter
-│       ├── HeaderBar.tsx               # 상태 뱃지·라운드·Export·⌘K
+│       ├── InterventionInput.tsx       # 입력창 + mode 토글 + Send + 슬래시 커맨드
+│       ├── HeaderBar.tsx               # 상태 뱃지·라운드·Export
 │       ├── AgentStrip.tsx              # 발화자 상태 인디케이터 행
-│       ├── ActivityLog.tsx             # 메타 이벤트 라이브 피드
-│       ├── CommandPalette.tsx          # ⌘K 명령 팔레트
-│       └── KeybindingsHelp.tsx         # ? 단축키 도움말 모달
+│       └── ActivityLog.tsx             # 메타 이벤트 라이브 피드
 └── logs/                                # 런타임 생성, .gitignore에 추가하지 않음(샘플 1개 커밋)
 ```
 
