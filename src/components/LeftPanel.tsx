@@ -281,6 +281,12 @@ function SessionSummaryCard({ view }: { view: SessionView }) {
   );
 }
 
+const AGENT_TONE: Record<AgentId, string> = {
+  claude: "text-orange-300",
+  codex: "text-emerald-300",
+  gemini: "text-blue-300",
+};
+
 function AgentsSummaryRow({
   configs,
   cliStatus,
@@ -289,33 +295,55 @@ function AgentsSummaryRow({
   cliStatus: CliStatus;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+    <div className="flex flex-col divide-y divide-zinc-800 border border-zinc-800">
       {configs.map((c) => {
-        if (!c.enabled) {
-          return (
-            <span
-              key={c.id}
-              className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-600 ring-1 ring-zinc-800"
-            >
-              ⚪ {AGENT_LABEL_SHORT[c.id]}
-            </span>
-          );
-        }
-        const modeIcon = c.mode === "api" ? "🔑" : "🖥";
-        let dot = "⚪";
-        if (c.mode === "api") {
-          dot = c.apiKey.trim().length > 0 ? "🟡" : "⚪";
-        } else {
-          const check = cliStatus?.[c.id];
-          dot = check === undefined ? "⚪" : check.found ? "🟢" : "🔴";
+        const modeLabel = c.mode === "api" ? "API" : "CLI";
+        let statusDot = "bg-zinc-700";
+        let statusLabel = "off";
+        if (c.enabled) {
+          if (c.mode === "api") {
+            const ready = c.apiKey.trim().length > 0;
+            statusDot = ready ? "bg-amber-400" : "bg-zinc-600";
+            statusLabel = ready ? "ready" : "no key";
+          } else {
+            const check = cliStatus?.[c.id];
+            if (check === undefined) {
+              statusDot = "bg-zinc-600";
+              statusLabel = "—";
+            } else if (check.found) {
+              statusDot = "bg-emerald-400";
+              statusLabel = "live";
+            } else {
+              statusDot = "bg-red-400";
+              statusLabel = "miss";
+            }
+          }
         }
         return (
-          <span
+          <div
             key={c.id}
-            className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-300 ring-1 ring-zinc-800"
+            className={`flex items-center gap-2.5 px-2.5 py-1.5 ${
+              c.enabled ? "" : "opacity-50"
+            }`}
           >
-            {dot} {modeIcon} {AGENT_LABEL_SHORT[c.id]}
-          </span>
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${statusDot}`}
+              aria-hidden="true"
+            />
+            <span
+              className={`flex-1 font-mono text-[12px] tracking-tight ${
+                c.enabled ? AGENT_TONE[c.id] : "text-zinc-500"
+              }`}
+            >
+              {AGENT_LABEL_SHORT[c.id]}
+            </span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-600">
+              {modeLabel}
+            </span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-500">
+              {statusLabel}
+            </span>
+          </div>
         );
       })}
     </div>

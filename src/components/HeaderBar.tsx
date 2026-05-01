@@ -1,28 +1,12 @@
-/* HeaderBar — 신문 메스트헤드 풍. 좌측 wordmark + 중앙 라이브 메타 + 우측 진행 게이지·Export.
- * Pentagram-스타일 정보 건축: 모노톤 + 1 액센트, 작은 메타 라벨(uppercase/tracking),
- * 진행 게이지는 fill 대신 underline 형태로 절제. 발화자 식별색만 유지. */
+/* HeaderBar — 신문 메스트헤드 (huashu-design 디자인 시안 ② After 적용).
+ * Noto Serif KR 'Agora' wordmark + double border + ON AIR ping + Section A
+ * 하단줄. 발화자 식별색만 유지, 나머지는 zinc 단색. */
 "use client";
 
 import { useEffect, useState } from "react";
 import type { SessionView } from "@/lib/client/types";
 import type { AgentId } from "@/lib/agents/types";
 import { MAX_SESSION_DURATION_MS, MAX_SESSION_TOKENS } from "@/lib/constants";
-
-const STATUS_DOT: Record<SessionView["status"], string> = {
-  setup: "bg-zinc-500",
-  running: "bg-blue-400",
-  idle: "bg-emerald-400",
-  paused: "bg-amber-400",
-  stopped: "bg-zinc-600",
-};
-
-const STATUS_LABEL: Record<SessionView["status"], string> = {
-  setup: "STANDBY",
-  running: "ON AIR",
-  idle: "USER TURN",
-  paused: "PAUSED",
-  stopped: "ENDED",
-};
 
 const AGENT_LABEL: Record<AgentId, string> = {
   claude: "Claude",
@@ -36,6 +20,30 @@ const AGENT_TONE: Record<AgentId, string> = {
   gemini: "text-blue-300",
 };
 
+const STATUS_LABEL: Record<SessionView["status"], string> = {
+  setup: "STANDBY",
+  running: "ON AIR",
+  idle: "USER TURN",
+  paused: "PAUSED",
+  stopped: "OFF AIR",
+};
+
+const STATUS_DOT: Record<SessionView["status"], string> = {
+  setup: "bg-zinc-500",
+  running: "bg-red-500",
+  idle: "bg-emerald-400",
+  paused: "bg-amber-400",
+  stopped: "bg-zinc-600",
+};
+
+const STATUS_TEXT: Record<SessionView["status"], string> = {
+  setup: "text-zinc-400",
+  running: "text-red-400",
+  idle: "text-emerald-300",
+  paused: "text-amber-300",
+  stopped: "text-zinc-500",
+};
+
 function rotate<T>(arr: T[], shift: number): T[] {
   if (arr.length === 0) return [];
   const k = ((shift % arr.length) + arr.length) % arr.length;
@@ -44,6 +52,35 @@ function rotate<T>(arr: T[], shift: number): T[] {
 
 interface Props {
   view: SessionView;
+}
+
+const SECTION_DAY_LABELS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+const SECTION_MONTH_LABELS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function formatToday(): string {
+  const d = new Date();
+  return `${SECTION_DAY_LABELS[d.getDay()]}, ${SECTION_MONTH_LABELS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 export function HeaderBar({ view }: Props) {
@@ -57,76 +94,110 @@ export function HeaderBar({ view }: Props) {
       view.status === "idle" ||
       view.status === "paused");
   const order = showRotation ? rotate(view.agents, view.turn) : [];
+  const today = formatToday();
+  const activeSpeaker =
+    order.find((id) => id === view.activeSpeaker) ?? order[0];
 
   return (
-    <header className="flex shrink-0 items-stretch border-b border-zinc-800/80 bg-zinc-950">
-      <div className="flex items-baseline gap-3 border-r border-zinc-800/80 px-6 py-3">
-        <h1 className="text-[18px] font-semibold tracking-[-0.02em] text-zinc-50">
-          Agora
-        </h1>
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-          multi-agent debate
+    <header className="flex shrink-0 flex-col bg-zinc-950 px-6 pb-2 pt-4 text-sm">
+      {/* Double rule masthead */}
+      <div className="flex items-center justify-between border-y-[3px] border-double border-zinc-700 py-3">
+        <div className="flex items-center gap-5">
+          <div className="flex items-baseline gap-2">
+            <h1
+              className="text-2xl tracking-[-0.02em] text-zinc-50"
+              style={{ fontFamily: '"Noto Serif KR", serif', fontWeight: 600 }}
+            >
+              Agora
+            </h1>
+            <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-zinc-500">
+              Daily
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 border-l border-zinc-800 pl-5">
+            <span className="relative flex h-2 w-2">
+              {view.status === "running" && (
+                <span
+                  className={`onair-ping absolute inline-flex h-full w-full rounded-full ${STATUS_DOT[view.status]}`}
+                  aria-hidden="true"
+                />
+              )}
+              <span
+                className={`relative inline-flex h-2 w-2 rounded-full ${STATUS_DOT[view.status]}`}
+                aria-hidden="true"
+              />
+            </span>
+            <span
+              className={`font-mono text-[10px] font-semibold uppercase tracking-[0.3em] ${STATUS_TEXT[view.status]}`}
+            >
+              {STATUS_LABEL[view.status]}
+            </span>
+            {view.sessionStartTs !== null && view.status !== "stopped" && (
+              <>
+                <span className="h-px w-14 bg-gradient-to-r from-red-500/70 to-transparent" />
+                <ElapsedTimecode
+                  startTs={view.sessionStartTs}
+                  durationMax={durationMax}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-5">
+          <Meta label="Round">
+            <span className="font-mono text-[13px] font-semibold tabular-nums text-zinc-100">
+              {String(view.turn).padStart(2, "0")}
+            </span>
+          </Meta>
+          {showRotation && activeSpeaker && (
+            <Meta label="Floor">
+              <span
+                className={`font-mono text-[12px] ${AGENT_TONE[activeSpeaker]}`}
+              >
+                {AGENT_LABEL[activeSpeaker]}
+              </span>
+            </Meta>
+          )}
+          <Meta label="Tok">
+            <span
+              className={`font-mono text-[12px] tabular-nums ${pct >= 90 ? "text-red-300" : "text-zinc-300"}`}
+            >
+              {view.sessionTokens.toLocaleString()}
+            </span>
+          </Meta>
+          {view.sessionId && view.status !== "setup" && (
+            <a
+              href={`/api/export?id=${view.sessionId}`}
+              className="rounded-sm border border-zinc-700 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:bg-zinc-800/60"
+            >
+              Export
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Section line — newspaper-style */}
+      <div className="mt-2 flex items-center justify-between">
+        <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-zinc-600">
+          Section A · Live Discourse
+        </span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-zinc-600">
+          {today}
         </span>
       </div>
 
-      <div className="flex flex-1 items-center gap-6 px-6 py-2">
-        <Meta label="Status">
-          <span
-            aria-hidden="true"
-            className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS_DOT[view.status]} ${
-              view.status === "running" ? "animate-pulse" : ""
-            }`}
-          />
-          <span className="font-mono text-[11px] tracking-wider text-zinc-200">
-            {STATUS_LABEL[view.status]}
-          </span>
-        </Meta>
-
-        <Meta label="Round">
-          <span className="font-mono text-[13px] tabular-nums text-zinc-100">
-            {String(view.turn).padStart(2, "0")}
-          </span>
-        </Meta>
-
-        {showRotation && (
-          <Meta label="Floor">
-            <div className="flex items-center gap-1.5 text-[11px]">
-              {order.map((id, i) => (
-                <span key={id} className="flex items-center gap-1.5">
-                  <span
-                    className={`${AGENT_TONE[id]} ${
-                      id === view.activeSpeaker ? "font-semibold" : "opacity-50"
-                    }`}
-                  >
-                    {AGENT_LABEL[id]}
-                  </span>
-                  {i < order.length - 1 && (
-                    <span className="text-zinc-700">·</span>
-                  )}
-                </span>
-              ))}
-            </div>
-          </Meta>
-        )}
-      </div>
-
-      <div className="flex items-center gap-5 border-l border-zinc-800/80 px-6 py-2">
-        <TokenGauge value={view.sessionTokens} pct={pct} max={tokenMax} />
-        {view.sessionStartTs !== null && view.status !== "stopped" && (
-          <ElapsedTimer
-            startTs={view.sessionStartTs}
-            durationMax={durationMax}
-          />
-        )}
-        {view.sessionId && view.status !== "setup" && (
-          <a
-            href={`/api/export?id=${view.sessionId}`}
-            className="font-mono text-[11px] uppercase tracking-wider text-zinc-400 transition-colors hover:text-zinc-100"
-          >
-            Export ↓
-          </a>
-        )}
-      </div>
+      {/* SR-only progress bars (시각은 아래 streambar/timecode·tok 라벨이 담당) */}
+      <span
+        role="progressbar"
+        aria-label="세션 토큰 사용량"
+        aria-valuenow={view.sessionTokens}
+        aria-valuemin={0}
+        aria-valuemax={tokenMax}
+        aria-valuetext={`${view.sessionTokens.toLocaleString()} / ${tokenMax.toLocaleString()} (${pct}%)`}
+        className="sr-only"
+      />
     </header>
   );
 }
@@ -139,56 +210,16 @@ function Meta({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline gap-2">
-      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-zinc-600">
+    <div className="flex items-center gap-1.5">
+      <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-500">
         {label}
       </span>
-      <span className="flex items-center gap-1.5">{children}</span>
+      {children}
     </div>
   );
 }
 
-function TokenGauge({
-  value,
-  pct,
-  max,
-}: {
-  value: number;
-  pct: number;
-  max: number;
-}) {
-  const danger = pct >= 90;
-  return (
-    <div className="flex items-baseline gap-2">
-      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-zinc-600">
-        Tokens
-      </span>
-      <div
-        role="progressbar"
-        aria-label="세션 토큰 사용량"
-        aria-valuenow={value}
-        aria-valuemin={0}
-        aria-valuemax={max}
-        aria-valuetext={`${value.toLocaleString()} / ${max.toLocaleString()} (${pct}%)`}
-        className="relative h-3 w-32 border-b border-zinc-800"
-      >
-        <div
-          className={`absolute bottom-0 left-0 h-full border-b-2 ${
-            danger ? "border-red-400" : "border-zinc-300"
-          }`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span
-        className={`font-mono text-[11px] tabular-nums ${danger ? "text-red-300" : "text-zinc-300"}`}
-      >
-        {Math.round(value / 1000)}k/{Math.round(max / 1000)}k
-      </span>
-    </div>
-  );
-}
-
-function ElapsedTimer({
+function ElapsedTimecode({
   startTs,
   durationMax,
 }: {
@@ -202,38 +233,23 @@ function ElapsedTimer({
   }, []);
   const elapsed = Date.now() - startTs;
   const pct = Math.min(100, Math.round((elapsed / durationMax) * 100));
-  const mm = Math.floor(elapsed / 60000);
-  const ss = Math.floor((elapsed % 60000) / 1000)
-    .toString()
-    .padStart(2, "0");
-  const totalMm = Math.floor(durationMax / 60000);
+  const totalSec = Math.floor(elapsed / 1000);
+  const hh = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+  const ss = String(totalSec % 60).padStart(2, "0");
   const danger = pct >= 90;
+  const totalMm = Math.floor(durationMax / 60000);
   return (
-    <div className="flex items-baseline gap-2">
-      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-zinc-600">
-        Elapsed
-      </span>
-      <div
-        role="progressbar"
-        aria-label="세션 경과 시간"
-        aria-valuenow={Math.floor(elapsed / 1000)}
-        aria-valuemin={0}
-        aria-valuemax={Math.floor(durationMax / 1000)}
-        aria-valuetext={`${mm}:${ss} / ${totalMm}:00`}
-        className="relative h-3 w-20 border-b border-zinc-800"
-      >
-        <div
-          className={`absolute bottom-0 left-0 h-full border-b-2 ${
-            danger ? "border-red-400" : "border-emerald-400/70"
-          }`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span
-        className={`font-mono text-[11px] tabular-nums ${danger ? "text-red-300" : "text-zinc-300"}`}
-      >
-        {mm}:{ss}
-      </span>
-    </div>
+    <span
+      role="progressbar"
+      aria-label="세션 경과 시간"
+      aria-valuenow={totalSec}
+      aria-valuemin={0}
+      aria-valuemax={Math.floor(durationMax / 1000)}
+      aria-valuetext={`${hh}:${mm}:${ss} / ${totalMm}:00`}
+      className={`font-mono text-[11px] tabular-nums ${danger ? "text-red-300" : "text-zinc-300"}`}
+    >
+      {hh}:{mm}:{ss}
+    </span>
   );
 }

@@ -108,6 +108,49 @@ samp,
   animation: flash-amber 0.8s ease-out;
 }
 
+/* On air ping — HeaderBar 빨간 점이 호흡하듯 퍼지는 ring (디자인 시안 적용). */
+@keyframes onair-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  80% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.onair-ping {
+  animation: onair-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Streaming progress bar — AgentStrip cue sheet에서 streaming row 하단 슬라이드. */
+@keyframes streambar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.streambar {
+  animation: streambar 2s linear infinite;
+}
+
+/* 신문 본문 드롭캡 — FinalArtifactCard 본문에 적용. */
+.agora-prose > p:first-of-type::first-letter {
+  font-family: "Noto Serif KR", serif;
+  font-style: italic;
+  font-size: 4.5rem;
+  line-height: 0.9;
+  float: left;
+  margin: 0.1rem 0.5rem 0 0;
+  color: #fafafa;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;

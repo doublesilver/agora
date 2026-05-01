@@ -97,105 +97,143 @@ export function InterventionInput({
 
   return (
     <div
-      className={`flex shrink-0 flex-col gap-2 border-t border-zinc-800 bg-zinc-950 px-6 py-3 ${flash ? "animate-flash-amber" : ""}`}
+      className={`relative flex shrink-0 flex-col bg-zinc-950 px-6 pb-3 pt-6 ${flash ? "animate-flash-amber" : ""}`}
     >
-      {showHelp && <SlashHelpCard onClose={() => setShowHelp(false)} />}
-      <div
-        role="group"
-        aria-label="메시지 개입 방식 선택"
-        className="flex flex-wrap items-center gap-2 text-xs"
-      >
-        <span className="text-zinc-500">현재 모드:</span>
-        <button
-          type="button"
-          aria-pressed={mode === "interrupt"}
-          onClick={() => setMode("interrupt")}
-          title="진행 중 발언을 즉시 끊고 사용자 메시지를 다음 라운드에 반영"
-          className={`flex items-center gap-1 rounded px-2 py-0.5 ring-1 transition-colors ${
-            mode === "interrupt"
-              ? "bg-amber-700 text-white ring-amber-500"
-              : "bg-zinc-800 text-zinc-400 ring-transparent hover:text-zinc-200"
-          }`}
-        >
-          {mode === "interrupt" ? "●" : "○"} ⚡ 즉시 끼어들기
-        </button>
-        <button
-          type="button"
-          aria-pressed={mode === "queue"}
-          onClick={() => setMode("queue")}
-          title="현재 라운드는 그대로 두고 다음 라운드에 반영"
-          className={`flex items-center gap-1 rounded px-2 py-0.5 ring-1 transition-colors ${
-            mode === "queue"
-              ? "bg-blue-700 text-white ring-blue-500"
-              : "bg-zinc-800 text-zinc-400 ring-transparent hover:text-zinc-200"
-          }`}
-        >
-          {mode === "queue" ? "●" : "○"} 📥 다음 라운드
-        </button>
-        <button
-          type="button"
-          disabled={view.status === "setup" || view.status === "stopped"}
-          onClick={() => onSend(SUMMARY_PROMPT, "queue")}
-          className="rounded bg-zinc-800 px-2 py-0.5 text-zinc-300 hover:bg-zinc-700 disabled:opacity-40"
-          title="다음 라운드에 자동 요약 요청"
-        >
-          📝 지금까지 요약
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowHelp(true)}
-          className="rounded bg-zinc-800 px-2 py-0.5 text-zinc-400 hover:bg-zinc-700"
-          title="슬래시 커맨드 안내"
-        >
-          / 명령어
-        </button>
-        {view.status === "idle" && (
-          <span className="rounded bg-emerald-900/60 px-2 py-0.5 text-emerald-300">
-            🤔 사용자 차례 — 메시지 보내거나 종료하세요
-          </span>
-        )}
+      {/* Folio tab — Sagmeister 풍 신문 가장자리 라벨 */}
+      <div className="absolute -top-3 left-6 bg-zinc-950 px-3">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-300">
+          Reader&apos;s Desk · 끼어들기
+        </span>
       </div>
-      <div className="flex gap-2">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (
-              e.key === "Enter" &&
-              !e.shiftKey &&
-              !e.nativeEvent.isComposing
-            ) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder={
-            view.status === "setup"
-              ? "세션 시작 후 메시지를 입력할 수 있어요"
-              : view.status === "stopped"
-                ? "세션이 종료되었습니다 — 좌측에서 새 세션을 시작하세요"
-                : view.status === "idle"
-                  ? "AI들이 합의한 것 같아요. 다음 의견을 보태거나 종료하세요 (Enter 전송 · Shift+Enter 줄바꿈)"
-                  : view.status === "paused"
-                    ? "일시정지 중 — 메시지는 큐에 쌓였다가 재개 시 반영 (Enter 전송 · Shift+Enter 줄바꿈)"
-                    : "예: '타겟 유저는 라이트 게이머다' — 즉시 끼어들면 진행 중 발언이 잘려요. /도움말 로 슬래시 커맨드 (Enter 전송)"
-          }
-          aria-label="토론 개입 메시지 입력"
-          disabled={view.status === "setup" || view.status === "stopped"}
-          className="h-16 flex-1 resize-none rounded border border-zinc-800 bg-zinc-900 p-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-        />
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={send}
-          className={`rounded px-4 text-sm font-medium ${
-            mode === "interrupt"
-              ? "bg-amber-600 hover:bg-amber-500"
-              : "bg-blue-600 hover:bg-blue-500"
-          } disabled:bg-zinc-800 disabled:text-zinc-500`}
+      <div className="border-t-2 border-zinc-700 pt-4">
+        {showHelp && <SlashHelpCard onClose={() => setShowHelp(false)} />}
+
+        {/* Mode 라디오 + 보조 액션 */}
+        <div
+          role="group"
+          aria-label="메시지 개입 방식 선택"
+          className="mb-4 flex flex-wrap items-center gap-4"
         >
-          {mode === "interrupt" ? "⚡ 끼어들기" : "📥 보내기"}
-        </button>
+          <button
+            type="button"
+            aria-pressed={mode === "interrupt"}
+            onClick={() => setMode("interrupt")}
+            title="진행 중 발언을 즉시 끊고 사용자 메시지를 다음 라운드에 반영"
+            className={`flex items-center gap-1.5 transition-colors ${
+              mode === "interrupt"
+                ? "text-red-400"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <span className="text-[10px]">
+              {mode === "interrupt" ? "●" : "○"}
+            </span>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em]">
+              Immediate · 즉시
+            </span>
+          </button>
+          <span className="text-zinc-700">/</span>
+          <button
+            type="button"
+            aria-pressed={mode === "queue"}
+            onClick={() => setMode("queue")}
+            title="현재 라운드는 그대로 두고 다음 라운드에 반영"
+            className={`flex items-center gap-1.5 transition-colors ${
+              mode === "queue"
+                ? "text-amber-400"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <span className="text-[10px]">{mode === "queue" ? "●" : "○"}</span>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em]">
+              Queue · 큐
+            </span>
+          </button>
+
+          <span className="ml-auto flex items-center gap-3">
+            <button
+              type="button"
+              disabled={view.status === "setup" || view.status === "stopped"}
+              onClick={() => onSend(SUMMARY_PROMPT, "queue")}
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+              title="다음 라운드에 자동 요약 요청"
+            >
+              Summarize
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowHelp(true)}
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:text-zinc-200"
+              title="슬래시 커맨드 안내"
+            >
+              / Commands
+            </button>
+            {view.status === "idle" && (
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-emerald-300">
+                User Turn
+              </span>
+            )}
+          </span>
+        </div>
+
+        {/* Reader's bar — double border-l + Serif italic placeholder */}
+        <div className="flex gap-3">
+          <div className="relative flex-1 border-l-[5px] border-double border-zinc-300/80 pl-4">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder={
+                view.status === "setup"
+                  ? "세션 시작 후 메시지를 입력할 수 있어요"
+                  : view.status === "stopped"
+                    ? "세션이 종료되었습니다 — 좌측에서 새 세션을 시작하세요"
+                    : view.status === "idle"
+                      ? "AI들이 합의한 것 같아요. 다음 의견을 보태거나 종료하세요"
+                      : view.status === "paused"
+                        ? "일시정지 중 — 메시지는 큐에 쌓였다가 재개 시 반영"
+                        : "이 토론에 한 마디 — 당신의 차례입니다."
+              }
+              aria-label="토론 개입 메시지 입력"
+              disabled={view.status === "setup" || view.status === "stopped"}
+              style={{ fontFamily: '"Noto Serif KR", serif' }}
+              className="h-16 w-full resize-none bg-transparent text-base leading-relaxed text-zinc-100 outline-none placeholder:italic placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={send}
+            className={`self-end border px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              mode === "interrupt"
+                ? "border-red-300 text-red-200 hover:bg-red-200 hover:text-red-900"
+                : "border-amber-300 text-amber-200 hover:bg-amber-200 hover:text-amber-900"
+            }`}
+          >
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.3em]">
+              Send →
+            </span>
+          </button>
+        </div>
+
+        {/* signature line */}
+        <div className="mt-3 flex items-center justify-between">
+          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-600">
+            Enter to send · Shift+Enter newline · / Commands
+          </span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-600">
+            — You, Reader
+          </span>
+        </div>
       </div>
     </div>
   );

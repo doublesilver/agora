@@ -246,17 +246,45 @@ function FinalArtifactCard({ view }: { view: SessionView }) {
     return null;
   }
   const theme = AGENT_THEME[fa.summarizerId];
+  const compiledAt = new Date(fa.ts).toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   return (
-    <div className="mt-2 rounded-lg bg-zinc-950 px-5 py-4 ring-2 ring-blue-700/60 shadow-[0_0_24px_-8px_rgba(59,130,246,0.55)]">
-      <div className="mb-2 flex items-center gap-2 text-xs">
-        <span className="rounded-full bg-blue-700/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-blue-200">
-          📦 최종 산출물
-        </span>
-        <span className="text-zinc-500">
-          · {theme.emoji} {theme.label} 정리
+    <article className="mx-auto mt-4 w-full max-w-xl border-y-[3px] border-double border-zinc-600 bg-zinc-950/80 px-2 py-9">
+      <div className="text-center">
+        <div className="inline-block border border-zinc-500 px-3 py-1">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.4em] text-zinc-200">
+            Extra · 호외
+          </span>
+        </div>
+        <div className="mt-2.5">
+          <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-zinc-500">
+            Round {String(view.turn).padStart(2, "0")} · Compiled {compiledAt}
+            {view.sessionTokens > 0
+              ? ` · ${view.sessionTokens.toLocaleString()} tok`
+              : ""}
+          </span>
+        </div>
+      </div>
+
+      <h2
+        className="mb-3 mt-6 px-4 text-center text-3xl italic leading-tight text-zinc-50"
+        style={{
+          fontFamily: '"Noto Serif KR", serif',
+          fontWeight: 500,
+          textWrap: "balance",
+        }}
+      >
+        토론 결과
+      </h2>
+      <div className="mb-7 text-center">
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
+          By {theme.label}
         </span>
       </div>
-      <div className="prose-invert text-sm leading-relaxed text-zinc-100">
+
+      <div className="agora-prose px-4 text-[13.5px] leading-[1.75] text-zinc-200">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={MARKDOWN_COMPONENTS}
@@ -264,88 +292,111 @@ function FinalArtifactCard({ view }: { view: SessionView }) {
           {fa.text}
         </ReactMarkdown>
       </div>
-    </div>
+
+      <div className="mt-8 text-center">
+        <span className="font-mono text-sm tracking-[0.6em] text-zinc-600">
+          — 30 —
+        </span>
+      </div>
+
+      {view.sessionId && (
+        <div className="mt-7 flex justify-center gap-2">
+          <a
+            href={`/api/export?id=${view.sessionId}`}
+            className="rounded-sm border border-zinc-600 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:bg-zinc-800/60"
+          >
+            Markdown ↓
+          </a>
+        </div>
+      )}
+    </article>
   );
 }
 
 function SetupHints() {
   return (
-    <div className="m-auto grid w-full max-w-3xl grid-cols-[auto_1fr] gap-x-10 gap-y-6 px-4 py-12">
-      <div className="col-span-2 flex items-baseline gap-4 border-b border-zinc-800 pb-6">
+    <div className="m-auto flex w-full max-w-3xl flex-col px-4 py-10">
+      <div className="flex items-baseline justify-between border-b border-zinc-800 pb-3">
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-          Issue №00 · standby
+          Issue № 001 · Vol. I
         </span>
-        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-          Agora / multi-agent debate
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+          The Discourse Edition
+        </span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+          Est. 2026
         </span>
       </div>
 
-      <h2 className="col-span-2 max-w-2xl text-[40px] font-semibold leading-[1.1] tracking-[-0.025em] text-zinc-50">
-        여러 AI가 토론하는 동안,
-        <br />
-        <span className="text-zinc-400">
-          함께 끼어들고 함께 흐름을 만듭니다.
+      <div className="flex flex-1 flex-col justify-center py-10">
+        <span className="mb-5 font-mono text-[10px] uppercase tracking-[0.4em] text-zinc-500">
+          — Today's Front Page —
         </span>
-      </h2>
+        <h2 className="text-[64px] font-light leading-[0.94] tracking-[-0.04em] text-zinc-50 sm:text-[80px] sm:leading-[0.92]">
+          세 개의 목소리,
+        </h2>
+        <h2
+          className="text-[64px] italic leading-[0.94] tracking-[-0.04em] text-zinc-400 sm:text-[80px] sm:leading-[0.92]"
+          style={{ fontFamily: '"Noto Serif KR", serif', fontWeight: 300 }}
+        >
+          하나의 결론
+        </h2>
+        <p className="mt-7 max-w-xl text-base leading-relaxed text-zinc-400">
+          Claude · GPT · Gemini가 라운드로 토론합니다.
+          <br />
+          당신은 언제든 끼어들 수 있습니다.
+        </p>
+      </div>
 
-      <p className="col-span-2 max-w-xl text-[14px] leading-[1.7] text-zinc-400">
-        Claude · GPT · Gemini가 한 명씩 직렬로 메시지를 주고받는다. 사용자는
-        진행 중 발언을 즉시 끊고 의견을 끼우거나, 다음 라운드 큐에 보탠다. 모든
-        토큰은 실시간 스트리밍, 모든 이벤트는 JSONL로 기록된다.
-      </p>
-
-      <ol className="col-span-2 mt-2 grid grid-cols-1 divide-y divide-zinc-800 border-y border-zinc-800 md:grid-cols-3 md:divide-x md:divide-y-0">
-        <SetupStep
-          n="01"
-          label="Authenticate"
-          title="AI 활성·인증"
-          body="좌측 ‘AI 에이전트 설정’에서 2개 이상 활성화하고 API 키 또는 CLI를 인증한다."
-        />
-        <SetupStep
-          n="02"
-          label="Topic"
-          title="토론 주제 · 결과 정리 담당"
-          body="프리셋 칩이 가장 빠르다. 정리 담당을 지정하면 종료 시 결론·논점·미해결·액션 4섹션 산출물이 따라온다."
-        />
-        <SetupStep
-          n="03"
-          label="On air"
-          title="시작 · 끼어들기"
-          body="좌측 ‘세션 시작’ → 진행 중 언제든 하단 입력창으로 끼어들기. 진행 발언을 자르거나 큐에 보탠다."
-        />
-      </ol>
+      <div className="border-t border-zinc-800 pt-5">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-zinc-500">
+            Inside This Issue
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-600">
+            P. 01—03
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-10">
+          <SetupStep
+            n="01"
+            title="에이전트 선택"
+            body="참여시킬 모델을 고르세요"
+          />
+          <SetupStep n="02" title="주제 입력" body="토론 주제를 한 줄로" />
+          <SetupStep n="03" title="라운드 시작" body="On Air → 토론 시작" />
+        </div>
+      </div>
     </div>
   );
 }
 
 function SetupStep({
   n,
-  label,
   title,
   body,
 }: {
   n: string;
-  label: string;
   title: string;
   body: string;
 }) {
   return (
-    <li className="flex flex-col gap-2 px-5 py-5">
-      <div className="flex items-baseline justify-between">
-        <span className="font-mono text-[28px] font-light text-zinc-700">
-          {n}
-        </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-          {label}
-        </span>
+    <div className="flex gap-3">
+      <div
+        className="font-light tabular-nums text-[28px] leading-none text-zinc-700"
+        style={{ fontFamily: '"JetBrains Mono", monospace' }}
+      >
+        {n}
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-0.5">
         <span className="text-[14px] font-medium tracking-tight text-zinc-100">
           {title}
         </span>
-        <span className="text-[12px] leading-[1.7] text-zinc-500">{body}</span>
+        <span className="text-[12px] leading-relaxed text-zinc-500">
+          {body}
+        </span>
       </div>
-    </li>
+    </div>
   );
 }
 
