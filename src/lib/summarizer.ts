@@ -214,12 +214,15 @@ export async function runFinalArtifact(state: SessionState): Promise<void> {
   const transcript = state.transcript.snapshot();
   if (transcript.length < 2) return;
 
+  // 사용자가 "결과 보려고 STOP"을 누른 시나리오에서는 sessionAbort가 fire된
+  // 직후 호출이 시작된다. sessionAbort를 합성하면 즉시 throw → summary_error만
+  // 남고 final_artifact가 안 뜬다. 그래서 자체 timeout만 적용해 산출물을
+  // 끝까지 기다린다 (API 45s, CLI 90s).
   try {
     const text = await callSummarizer(
       spec,
       FINAL_INSTRUCTION,
       transcriptText(transcript),
-      state.sessionAbort.signal,
     );
     if (!text.trim()) return;
     emitEvent(state, {

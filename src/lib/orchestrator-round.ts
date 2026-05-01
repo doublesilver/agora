@@ -129,6 +129,21 @@ async function speakOnce(
     return false;
   }
 
+  // STOP 후에는 부분 발언을 transcript·UI에 박지 않는다 — final 입력·Export
+  // 누수 차단. 인터럽트(라운드만 끊고 세션 유지)는 기존 정책대로 부분 발언을
+  // 발화로 인정해 다음 라운드 화자가 본다.
+  if (state.sessionAbort.signal.aborted) {
+    emitEvent(state, {
+      type: "agent_end",
+      agentId: speaker.id,
+      turn: state.turn,
+      fullText: "",
+      interrupted: true,
+      ts: now(),
+    });
+    return false;
+  }
+
   emitEvent(state, {
     type: "agent_end",
     agentId: speaker.id,

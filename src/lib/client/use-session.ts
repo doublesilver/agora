@@ -100,7 +100,13 @@ export function useSession() {
       ];
       for (const t of TYPES) es.addEventListener(t, handler);
       es.onerror = () => {
-        // 자동 재연결 default — 명시 처리 불요.
+        // 재연결 default를 차단한다. 재연결 시 stream/route.ts가 eventLog
+        // 전체를 replay하는데 클라 reducer는 since 토큰 없이 token 이벤트를
+        // 그대로 재누적해 본문이 두 배가 된다. 시연 시간 박스(5분)에선
+        // 끊기는 일이 거의 없고, 끊긴 뒤 무리하게 이어붙이는 것보다 명시
+        // 종료가 깔끔. 새 세션은 페이지 새로고침으로 시작.
+        es.close();
+        if (esRef.current === es) esRef.current = null;
       };
     },
     [applyEvent],
