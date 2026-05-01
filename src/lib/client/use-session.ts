@@ -241,9 +241,19 @@ function appendActivity(
   log: ActivityEntry[],
   entry: ActivityEntry,
 ): ActivityEntry[] {
-  // SSE 자동 재연결로 동일 이벤트가 replay돼 같은 id가 두 번 들어오는 케이스 방지.
-  // 마지막 ACTIVITY_LOG_CAP 윈도우 안에서만 검사하면 충분 (이전 동일 id는 잘려나감).
+  // SSE 자동 재연결 등으로 같은 id가 또 들어오는 케이스 방지.
   if (log.some((e) => e.id === entry.id)) return log;
+  // 같은 사유의 에러/경고가 연속해서 들어오면 도배 차단 — 직전 entry와 텍스트가
+  // 같은 error/warn 톤이면 skip. 정상 발화·system 톤이 사이에 끼면 reset됨.
+  const last = log[log.length - 1];
+  if (
+    last &&
+    (entry.tone === "error" || entry.tone === "warn") &&
+    last.tone === entry.tone &&
+    last.text === entry.text
+  ) {
+    return log;
+  }
   const next = [...log, entry];
   return next.length > ACTIVITY_LOG_CAP
     ? next.slice(next.length - ACTIVITY_LOG_CAP)

@@ -1,4 +1,6 @@
-/* 토큰 스트림 소비 — 첫 토큰 race + 토큰 루프 + 에러 수습. */
+/* 토큰 스트림 소비 — 첫 토큰 race + 토큰 루프 + 에러 수습.
+ * agent_end / agent_timeout / agent_error는 모두 이 함수가 단독으로 emit한다.
+ * speakOnce는 transcript push와 usage만 책임 — 이중 emit 방지. */
 import type { AgentAdapter } from "./agents/types";
 import {
   AGENT_FIRST_TOKEN_TIMEOUT_MS,
@@ -15,19 +17,38 @@ function isAbortError(err: unknown): boolean {
   );
 }
 
-/** 첫 토큰 race + 토큰 루프 + 에러 수습. fullText 반환. */
+export interface StreamResult {
+  fullText: string;
+  /** agent_error로 종료된 경우 true — speakOnce가 transcript push·usage 모두 skip. */
+  errored: boolean;
+}
+
 export async function streamSpeakerTokens(
   state: SessionState,
   speaker: AgentAdapter,
   stream: AsyncIterable<string>,
-): Promise<string> {
+): Promise<StreamResult> {
   let fullText = "";
-  // STOP 시점에 이미 stream이 만들어졌어도 토큰을 단 한 개도 흘리지 않게 가드.
-  if (state.sessionAbort.signal.aborted) return "";
+
+  const emitEnd = (interrupted: boolean): void => {
+    emitEvent(state, {
+      type: "agent_end",
+      agentId: speaker.id,
+      turn: state.turn,
+      fullText,
+      interrupted,
+      ts: now(),
+    });
+  };
+
+  // STOP 시점에 stream이 이미 만들어졌어도 토큰을 흘리지 않게 가드.
+  if (state.sessionAbort.signal.aborted) {
+    emitEnd(true);
+    return { fullText: "", errored: false };
+  }
+
   const iter = stream[Symbol.asyncIterator]();
   try {
-    // 첫 토큰 도착 전까지 AGENT_FIRST_TOKEN_TIMEOUT_MS 캡. 늦으면 round abort + timeout.
-    // sessionAbort가 fire되면 race도 즉시 종료되도록 race 슬롯을 추가.
     const abortPromise = new Promise<{ kind: "aborted" }>((resolve) => {
       if (state.sessionAbort.signal.aborted) {
         resolve({ kind: "aborted" });
@@ -59,7 +80,8 @@ export async function streamSpeakerTokens(
     ]);
 
     if (firstChunkRace.kind === "aborted") {
-      return "";
+      emitEnd(true);
+      return { fullText: "", errored: false };
     }
 
     if (firstChunkRace.kind === "timeout") {
@@ -72,21 +94,15 @@ export async function streamSpeakerTokens(
         timeoutMs: AGENT_FIRST_TOKEN_TIMEOUT_MS,
         ts: now(),
       });
-      // 빈 agent_end로 streaming bubble 정리 → UI가 timeout 메시지로 마킹.
-      emitEvent(state, {
-        type: "agent_end",
-        agentId: speaker.id,
-        turn: state.turn,
-        fullText: "",
-        interrupted: true,
-        ts: now(),
-      });
-      return "";
+      emitEnd(true);
+      return { fullText: "", errored: false };
     }
 
     if (firstChunkRace.kind === "first" && firstChunkRace.value) {
-      // 첫 토큰 도착과 STOP이 겹친 race window 추가 가드.
-      if (state.sessionAbort.signal.aborted) return "";
+      if (state.sessionAbort.signal.aborted) {
+        emitEnd(true);
+        return { fullText: "", errored: false };
+      }
       fullText += firstChunkRace.value;
       emitEvent(state, {
         type: "token",
@@ -106,7 +122,6 @@ export async function streamSpeakerTokens(
       }
       const r = await iter.next();
       if (r.done) break;
-      // iter.next() 도중 STOP이 fire됐을 수 있으므로 emit 전에 한 번 더 가드.
       if (state.sessionAbort.signal.aborted) break;
       fullText += r.value;
       emitEvent(state, {
@@ -126,7 +141,15 @@ export async function streamSpeakerTokens(
         message: (err as Error)?.message ?? String(err),
         ts: now(),
       });
+      // agent_error로 종료 — agent_end는 emit하지 않는다(이중 noise 방지).
+      return { fullText: "", errored: true };
     }
+    // AbortError는 정상 인터럽트 흐름.
   }
-  return fullText;
+
+  // 정상 종료(또는 abort로 끊김) — 한 번만 agent_end emit.
+  const interrupted =
+    state.roundAbort.signal.aborted || state.sessionAbort.signal.aborted;
+  emitEnd(interrupted);
+  return { fullText, errored: false };
 }

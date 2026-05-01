@@ -60,6 +60,7 @@ export function createSessionState(opts: CreateSessionOptions): SessionState {
     eventLog: [],
     closers: [],
     summarizerId: opts.summarizerId,
+    errorStreak: new Map(),
   };
 }
 

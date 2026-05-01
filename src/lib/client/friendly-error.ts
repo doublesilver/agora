@@ -10,8 +10,8 @@ export interface FriendlyError {
 const PATTERNS: { match: RegExp; title: string; hint?: string }[] = [
   {
     match: /credit balance|insufficient[_ -]?credit|billing|payment.required/i,
-    title: "결제 잔액·청구 문제",
-    hint: "키는 유효하지만 Anthropic Console / OpenAI Billing에서 잔액·결제 수단·플랜을 확인하세요. (키 검증 ✓와는 별개)",
+    title: "결제·잔액 관련 가능성",
+    hint: "콘솔(Anthropic / OpenAI Billing 등)에서 잔액·결제 수단·플랜을 먼저 확인하세요. 모델 권한·조직 설정도 같은 메시지를 낼 수 있어 원본 메시지(아래)를 같이 보세요.",
   },
   {
     match: /401|unauthorized|invalid[_ -]?api[_ -]?key|authentication/i,

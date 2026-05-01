@@ -121,6 +121,9 @@ export interface SessionState {
   closers: Array<() => void | Promise<void>>;
   /** 요약 담당 에이전트 id — 미설정 시 final 산출물 비활성. */
   summarizerId?: AgentId;
+  /** 어댑터별 연속 에러 카운트 — 회복 불가 사유(401/잔액 부족 등) 도배 차단용.
+   * 정상 발화·PASS 시 0으로 reset. MAX_AGENT_ERROR_STREAK 초과 시 라운드 skip. */
+  errorStreak: Map<AgentId, number>;
 }
 
 const sessions = new Map<string, SessionState>();
