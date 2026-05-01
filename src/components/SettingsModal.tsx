@@ -1307,18 +1307,18 @@ function AboutPane() {
   return (
     <section className="flex flex-col gap-3 text-[12px] leading-relaxed text-ink2">
       <h3 className="font-semibold text-ink">
-        Agora · 사용자가 끼어들 수 있는 멀티 AI 토론 도구
+        Agora · 사용자가 함께 참여하는 멀티 AI 토론 도구
       </h3>
       <p>
         베이글코드 신작팀 AI 개발자 채용 과제 제출물. 여러 AI 에이전트(Claude
         ·GPT·Gemini)가 직렬 라운드로 자유 메시지를 주고받으며 사용자의
-        프롬프트를 협업 처리하고, 사용자는 토론에 즉시 끼어들거나 다음 라운드에
-        보태거나 일시정지·재개·종료할 수 있다.
+        프롬프트를 협업 처리하고, 사용자는 토론에 즉시 의견을 추가하거나 다음
+        라운드에 반영하거나 일시정지·재개·종료할 수 있다.
       </p>
       <p>
         차별화 한 줄:{" "}
         <strong className="text-ink">
-          단순 다중 호출이 아니라 사용자가 토론에 끼어들 수 있는 도구
+          단순 다중 호출이 아니라 사용자가 토론에 함께 참여하는 도구
         </strong>
         .
       </p>

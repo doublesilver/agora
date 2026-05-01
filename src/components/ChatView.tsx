@@ -301,7 +301,7 @@ function TurnRow({
           <span className="italic text-ink3">// CLI 부팅·인증 체크 중…</span>
         ) : message.interrupted ? (
           <span className="italic text-ink3">
-            // 응답 시간 초과 또는 끼어들기로 중단됨
+            // 응답 시간 초과 또는 사용자 의견으로 중단됨
           </span>
         ) : (
           <span className="italic text-ink3">
@@ -347,25 +347,25 @@ function InterruptRow({ message, idx }: { message: ChatMessage; idx: number }) {
         style={{ background: "#F2E14C", color: "#0A0A0A" }}
       >
         <div className="text-[14px] leading-tight tracking-[-0.01em]">
-          ※ USER
+          ※ 사용자
         </div>
         <div className="mt-1 text-[9px] uppercase tracking-[0.18em]">
-          {isInterrupt ? "IMMEDIATE" : "QUEUED"}
+          {isInterrupt ? "즉시" : "큐"}
         </div>
         <div className="mt-auto pt-2 text-[9px] uppercase tracking-[0.2em]">
-          {isInterrupt ? "⌥+↵ FIRED" : "⏎ ENQUEUED"}
+          {isInterrupt ? "⌥+↵ 즉시 반영" : "⏎ 큐 추가"}
         </div>
       </div>
       <div className="border-r border-paper2/20 px-3.5 py-3 leading-[1.55]">
         <span className="mr-1 text-highlight">&gt;&gt;</span>
         <span>{message.text}</span>
         <div className="mt-2 text-[10px] uppercase tracking-[0.16em] text-highlight">
-          // INJECT → FLOOR.next() ·{" "}
-          {isInterrupt ? "OVERRIDE: cut current" : "QUEUE: next round"}
+          // 사용자 의견 추가 ·{" "}
+          {isInterrupt ? "즉시 반영 (현 라운드 종료)" : "다음 라운드에 전달"}
         </div>
       </div>
       <div className="flex flex-col gap-1 px-2.5 py-3 text-[10px] uppercase tracking-[0.16em]">
-        <span>{isInterrupt ? "force-injected" : "enqueued"}</span>
+        <span>{isInterrupt ? "즉시 반영됨" : "큐 추가됨"}</span>
       </div>
     </article>
   );
@@ -456,7 +456,7 @@ function SetupHints() {
             FORUM
           </h1>
           <div className="mt-6 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink2">
-            ─── 사용자가 끼어들 수 있는 멀티 AI 토론 도구 ───
+            ─── 사용자도 함께 토론하는 멀티 AI 도구 ───
           </div>
         </div>
         <aside className="flex flex-col justify-between gap-4 bg-paper2 px-6 py-10">
@@ -466,16 +466,16 @@ function SetupHints() {
           <p className="font-mono text-[13px] leading-[1.7] text-ink">
             여러 AI 에이전트가{" "}
             <span className="bf-highlight font-bold">직렬 라운드</span>로
-            토론합니다. 사용자는 진행 중 발언을{" "}
-            <span className="bf-highlight font-bold">즉시 끊고</span> 의견을
-            끼우거나 다음 라운드에 보탤 수 있습니다.
+            토론합니다. 진행 중에 사용자가{" "}
+            <span className="bf-highlight font-bold">의견을 추가</span>하면
+            라운드가 그 의견을 받아 즉시 반응하거나, 다음 라운드에 반영합니다.
           </p>
           <p className="font-mono text-[12px] leading-[1.65] text-ink2">
             모든 토큰은 실시간으로 스트리밍되고, 모든 이벤트는 JSONL로 기록되며,
             토론 종료 시 결과 정리 담당이 한 장의 호외로 압축합니다.
           </p>
           <div className="border-t-2 border-ink pt-3 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-ink">
-            ※ 토론에 끼어들 권한 — USER ONLY
+            ※ 사용자 의견 — 언제든 환영
           </div>
         </aside>
       </div>
@@ -490,7 +490,12 @@ function SetupHints() {
             "토론 주제 입력 + (선택) 결과 정리 담당",
             "→ SIDEBAR · TOPIC.draft",
           ],
-          ["03", "GO", "▶ START SESSION → 진행 중 끼어들기", "→ R01 BEGINS"],
+          [
+            "03",
+            "GO",
+            "▶ START SESSION → 진행 중 의견 추가 가능",
+            "→ R01 시작",
+          ],
         ].map(([n, label, body, hint]) => (
           <div key={n} className="flex flex-col gap-3 px-6 py-6">
             <div className="font-mono text-[64px] font-black leading-none tracking-[-0.05em] text-ink">
@@ -511,10 +516,8 @@ function SetupHints() {
 
       {/* Predicate footer — terminal-style */}
       <div className="flex items-center justify-between bg-ink px-6 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-paper">
-        <span>
-          // READY WHEN: ACTIVE_AGENTS ≥ 2 &amp;&amp; TOPIC.length &gt; 0
-        </span>
-        <span className="bg-highlight px-1 text-ink">EDIT-RIGHT → USER</span>
+        <span>// 시작 조건: 활성 에이전트 ≥ 2 &amp;&amp; 주제 입력</span>
+        <span className="bg-highlight px-1 text-ink">사용자 의견 환영</span>
       </div>
     </div>
   );

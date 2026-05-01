@@ -1,5 +1,5 @@
-/* InterventionInput — Forum 인터럽트 입력창 (시안 C 적용).
- * "끼어들기"가 1급 동사. 모드(즉시/큐) 라디오 + 터미널 prompt + 액션 버튼. */
+/* InterventionInput — Forum 사용자 발언 입력창 (시안 C 적용).
+ * 모드(즉시/큐) 라디오 + 터미널 prompt + 액션 버튼. */
 "use client";
 
 import { useState } from "react";
@@ -166,10 +166,10 @@ export function InterventionInput({
             // ※ USER
           </div>
           <div className="font-mono text-[12px] font-bold uppercase tracking-[0.16em] text-ink">
-            R{view.turn} · {isInterrupt ? "FORCE" : "ENQUEUE"}
+            R{view.turn} · {isInterrupt ? "즉시" : "큐"}
           </div>
           <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink3">
-            {isInterrupt ? "⌥+↵ to fire" : "↵ to enqueue"}
+            {isInterrupt ? "⌥+↵ 즉시 반영" : "↵ 다음 라운드"}
           </div>
         </div>
         <div className="px-3 py-2">
@@ -193,11 +193,11 @@ export function InterventionInput({
               placeholder={
                 inputDisabled
                   ? view.status === "stopped"
-                    ? "// SESSION ENDED — start a new one"
-                    : "// SESSION NOT STARTED"
+                    ? "// 세션 종료됨 — 새 세션을 시작하세요"
+                    : "// 세션 시작 전 — 좌측에서 ▶ START SESSION"
                   : isInterrupt
-                    ? "// 진행 중 발언을 즉시 끊고 INJECT — 예: '타겟 유저는 라이트 게이머다'"
-                    : "// 다음 라운드에 보낼 메시지 — 진행 중 발언은 그대로"
+                    ? "// 지금 의견 추가 — 예: '타겟 유저는 라이트 게이머입니다'"
+                    : "// 다음 라운드에 전달할 메시지 — 진행 중 발언은 그대로"
               }
               aria-label="토론 개입 메시지 입력"
               disabled={inputDisabled}
@@ -216,7 +216,7 @@ export function InterventionInput({
                 : "bg-paper text-ink hover:bg-ink hover:text-paper"
             }`}
           >
-            {isInterrupt ? "※ INTERRUPT →" : "↳ ENQUEUE →"}
+            {isInterrupt ? "※ 지금 보내기 →" : "↳ 큐에 추가 →"}
           </button>
         </div>
       </div>
@@ -224,7 +224,7 @@ export function InterventionInput({
       {/* signature line */}
       <div className="flex items-center justify-between border-t border-ink px-4 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink3">
         <span>
-          ↵ SEND · ⇧↵ NEWLINE · / COMMANDS · 진행 중 끼어들기는 1급 시민
+          ↵ 보내기 · ⇧↵ 줄바꿈 · / 슬래시 명령 · 진행 중에도 의견 추가 가능
         </span>
       </div>
     </div>
