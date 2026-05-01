@@ -496,11 +496,10 @@ function AgentsPane({
   onSetSystemPrompt: (id: AgentId, prompt: string) => void;
 }) {
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
         <p className="text-[11px] text-zinc-500">
-          한 번 인증/설정하면 토론 중에도 닫아둘 수 있어요. 진행 중에는 역할
-          메모만 핫스왑 가능.
+          진행 중에는 역할 메모만 핫스왑 가능.
         </p>
         <button
           type="button"
@@ -508,13 +507,13 @@ function AgentsPane({
           disabled={cliLoading}
           className="text-[11px] text-zinc-400 underline disabled:opacity-50 hover:text-zinc-200"
         >
-          {cliLoading ? "확인 중…" : "↻ CLI 상태 새로고침"}
+          {cliLoading ? "확인 중…" : "↻ CLI 새로고침"}
         </button>
       </div>
       {configs.map((c) => (
         <div
           key={c.id}
-          className="flex flex-col gap-2 rounded-md border border-zinc-800 bg-zinc-900/60 p-3"
+          className="flex flex-col gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2"
         >
           <label className="flex items-center gap-2">
             <input
@@ -591,7 +590,7 @@ function AgentsPane({
         </div>
       ))}
 
-      <div className="mt-2 flex flex-col gap-3 rounded-md border border-zinc-800 bg-zinc-900/30 p-4">
+      <div className="mt-1 flex flex-col gap-2 rounded-md border border-zinc-800 bg-zinc-900/30 px-3 py-2.5">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           📝 결과 정리 담당
         </h3>
@@ -769,15 +768,14 @@ function SummarizerPane({
   });
 
   return (
-    <section className="flex flex-col gap-3">
-      <p className="text-[12px] leading-relaxed text-zinc-400">
-        토론 종료 시 결론·핵심 논점·미해결·액션 아이템 4섹션 산출물을
-        생성합니다. 명시 선택이 없으면 활성 어댑터 중 자동으로 첫 후보가
-        사용됩니다.
+    <section className="flex flex-col gap-2">
+      <p className="text-[11px] text-zinc-500">
+        종료 시 결론·논점·미해결·액션 4섹션 산출물. 미선택 시 첫 활성 어댑터로
+        자동.
       </p>
       {candidates.length === 0 ? (
         <p className="rounded border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-[11px] text-zinc-500">
-          API 키 인증 또는 CLI 설치된 활성 에이전트가 1개 이상 필요합니다.
+          API 키 인증 또는 CLI 설치된 활성 에이전트 필요.
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
@@ -808,10 +806,8 @@ function SummarizerPane({
           })}
         </div>
       )}
-      <p className="text-[10px] text-zinc-600 leading-relaxed">
-        API 모드: SDK 단발 호출(45s 타임아웃). CLI 모드: 1st-party CLI를 한 번
-        spawn(90s 타임아웃, cold-start 25~40s 흡수). 자세한 정책은 AGENTS.md
-        §A9.
+      <p className="text-[10px] text-zinc-600">
+        API 45s · CLI 90s 단발 호출 · 자세한 정책은 AGENTS.md §A9.
       </p>
     </section>
   );
