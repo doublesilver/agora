@@ -61,6 +61,10 @@ export interface ActivityEntry {
   ts: number;
   tone: "info" | "warn" | "error" | "pass" | "system";
   text: string;
+  /** 클릭 시 해당 채팅 발화로 스크롤 — agent_start/end/pass/timeout/error 등
+   * 발화 단위 이벤트에서만 채워진다. (turn, agentId)로 ChatView Bubble의
+   * data-attr를 querySelector. */
+  jumpTo?: { turn: number; agentId: AgentId };
 }
 
 export interface SessionFinalArtifact {

@@ -22,6 +22,21 @@ function formatTime(ts: number): string {
   return d.toLocaleTimeString("ko-KR", { hour12: false });
 }
 
+/** 발화 단위 entry 클릭 시 ChatView Bubble로 스크롤. data-turn + data-agent
+ * 매칭. 같은 (turn, agentId)에 streaming bubble + 완료 bubble이 동시 존재할
+ * 가능성이 있어 마지막 element를 우선 선택. */
+function jumpToBubble(turn: number, agentId: string): void {
+  const matches = document.querySelectorAll<HTMLElement>(
+    `article[data-turn="${turn}"][data-agent="${agentId}"]`,
+  );
+  const target = matches[matches.length - 1];
+  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  target?.classList.add("ring-2", "ring-amber-400/60", "rounded-md");
+  setTimeout(() => {
+    target?.classList.remove("ring-2", "ring-amber-400/60", "rounded-md");
+  }, 1400);
+}
+
 export function ActivityLog({ view }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
@@ -69,17 +84,45 @@ export function ActivityLog({ view }: Props) {
           </div>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {view.activityLog.map((entry) => (
-              <li
-                key={entry.id}
-                className="flex items-start gap-2 leading-snug"
-              >
-                <span className="shrink-0 font-mono text-[10px] text-zinc-600">
-                  {formatTime(entry.ts)}
-                </span>
-                <span className={TONE_CLASS[entry.tone]}>{entry.text}</span>
-              </li>
-            ))}
+            {view.activityLog.map((entry) => {
+              const clickable = entry.jumpTo !== undefined;
+              const inner = (
+                <>
+                  <span className="shrink-0 font-mono text-[10px] text-zinc-600">
+                    {formatTime(entry.ts)}
+                  </span>
+                  <span className={TONE_CLASS[entry.tone]}>{entry.text}</span>
+                  {clickable && (
+                    <span
+                      aria-hidden="true"
+                      className="ml-auto shrink-0 font-mono text-[9px] text-zinc-700"
+                    >
+                      ↗
+                    </span>
+                  )}
+                </>
+              );
+              return (
+                <li key={entry.id} className="leading-snug">
+                  {clickable ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        jumpToBubble(entry.jumpTo!.turn, entry.jumpTo!.agentId)
+                      }
+                      className="flex w-full items-start gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-zinc-900"
+                      title="해당 발화로 이동"
+                    >
+                      {inner}
+                    </button>
+                  ) : (
+                    <div className="flex items-start gap-2 px-1 py-0.5">
+                      {inner}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

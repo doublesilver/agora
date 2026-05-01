@@ -1,12 +1,26 @@
 /* ChatView — 단일 시간순 transcript 스레드. */
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage, SessionView } from "@/lib/client/types";
 import type { AgentId } from "@/lib/agents/types";
 import { friendlyError } from "@/lib/client/friendly-error";
+
+const COLLAPSE_CHAR_THRESHOLD = 800;
+
+const AGENT_ROTATION_LABEL: Record<AgentId, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  gemini: "Gemini",
+};
+
+function rotateAgents(agents: AgentId[], shift: number): AgentId[] {
+  if (agents.length === 0) return [];
+  const k = ((shift % agents.length) + agents.length) % agents.length;
+  return [...agents.slice(k), ...agents.slice(0, k)];
+}
 
 const MARKDOWN_COMPONENTS = {
   p: ({ children }: { children?: React.ReactNode }) => (
@@ -136,16 +150,47 @@ export function ChatView({ view }: Props) {
     stickRef.current = distance < 80;
   }
 
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // 라운드 구분선 삽입 — 직전 agent 발화의 turn과 달라지면 RoundDivider 끼움.
+  const items: React.ReactNode[] = [];
+  let lastTurn: number | undefined = undefined;
+  for (const m of view.messages) {
+    if (m.role !== "user" && m.turn !== undefined && m.turn !== lastTurn) {
+      items.push(
+        <RoundDivider
+          key={`divider-${m.turn}`}
+          turn={m.turn}
+          agents={view.agents}
+        />,
+      );
+      lastTurn = m.turn;
+    }
+    items.push(
+      <Bubble
+        key={m.id}
+        message={m}
+        expanded={expanded.has(m.id)}
+        onToggleExpand={() => toggleExpand(m.id)}
+      />,
+    );
+  }
+
   return (
     <div
       ref={scrollRef}
       onScroll={onScroll}
-      className="flex h-full flex-col gap-3 overflow-y-auto bg-zinc-900 px-6 py-6"
+      className="flex h-full flex-col gap-3 overflow-y-auto bg-zinc-950 px-6 py-6"
     >
       {view.messages.length === 0 && <SetupHints />}
-      {view.messages.map((m) => (
-        <Bubble key={m.id} message={m} />
-      ))}
+      {items}
       {Object.entries(view.passedRecent).map(([id, turn]) =>
         turn === undefined ? null : (
           <PassChip key={`${id}-${turn}`} agentId={id as AgentId} turn={turn} />
@@ -153,6 +198,28 @@ export function ChatView({ view }: Props) {
       )}
       {view.errorRecent && <ErrorBanner errorRecent={view.errorRecent} />}
       <FinalArtifactCard view={view} />
+    </div>
+  );
+}
+
+function RoundDivider({ turn, agents }: { turn: number; agents: AgentId[] }) {
+  const order = rotateAgents(agents, turn);
+  return (
+    <div className="my-2 flex items-center gap-3 px-1 font-mono text-[10px] uppercase tracking-[0.18em]">
+      <span className="text-zinc-500">
+        Round {String(turn).padStart(2, "0")}
+      </span>
+      <span className="h-px flex-1 bg-zinc-800" />
+      {order.length > 0 && (
+        <span className="text-zinc-600">
+          {order.map((id, i) => (
+            <span key={id}>
+              {i > 0 && <span className="mx-1 text-zinc-700">→</span>}
+              {AGENT_ROTATION_LABEL[id]}
+            </span>
+          ))}
+        </span>
+      )}
     </div>
   );
 }
@@ -211,9 +278,11 @@ function SetupHints() {
       </div>
 
       <h2 className="col-span-2 max-w-2xl text-[40px] font-semibold leading-[1.1] tracking-[-0.025em] text-zinc-50">
-        AI들이 토론하는 도중,
+        여러 AI가 토론하는 동안,
         <br />
-        <span className="text-zinc-400">당신이 끼어들 수 있다.</span>
+        <span className="text-zinc-400">
+          함께 끼어들고 함께 흐름을 만듭니다.
+        </span>
       </h2>
 
       <p className="col-span-2 max-w-xl text-[14px] leading-[1.7] text-zinc-400">
@@ -291,9 +360,22 @@ const AGENT_LABEL_COLOR: Record<string, string> = {
   gemini: "text-blue-300",
 };
 
-function Bubble({ message }: { message: ChatMessage }) {
+function Bubble({
+  message,
+  expanded,
+  onToggleExpand,
+}: {
+  message: ChatMessage;
+  expanded: boolean;
+  onToggleExpand: () => void;
+}) {
   const theme = AGENT_THEME[message.role] ?? AGENT_THEME.user;
   const bar = AGENT_BAR[message.role] ?? AGENT_BAR.user;
+  const shouldCollapse =
+    !message.streaming &&
+    !expanded &&
+    !message.interrupted &&
+    message.text.length > COLLAPSE_CHAR_THRESHOLD;
   const isUserInterrupt =
     message.role === "user" && message.mode === "interrupt";
   const isUserQueue = message.role === "user" && message.mode === "queue";
@@ -302,7 +384,10 @@ function Bubble({ message }: { message: ChatMessage }) {
 
   return (
     <article
-      className={`group relative grid w-full max-w-[78ch] grid-cols-[3px_1fr] gap-4 ${interruptStyle}`}
+      id={`msg-${message.id}`}
+      data-turn={message.turn ?? ""}
+      data-agent={message.role}
+      className={`group relative grid w-full max-w-[78ch] grid-cols-[3px_1fr] gap-4 scroll-mt-24 ${interruptStyle}`}
     >
       <div
         aria-hidden="true"
@@ -365,17 +450,39 @@ function Bubble({ message }: { message: ChatMessage }) {
           className={`text-sm ${message.interrupted ? "text-zinc-500" : "text-zinc-100"}`}
         >
           {message.text ? (
-            <div className="prose-invert">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={MARKDOWN_COMPONENTS}
+            <>
+              <div
+                className={
+                  shouldCollapse
+                    ? "prose-invert relative max-h-48 overflow-hidden"
+                    : "prose-invert"
+                }
               >
-                {message.text}
-              </ReactMarkdown>
-              {message.streaming && (
-                <span className="ml-0.5 animate-pulse">▌</span>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={MARKDOWN_COMPONENTS}
+                >
+                  {message.text}
+                </ReactMarkdown>
+                {message.streaming && (
+                  <span className="ml-0.5 animate-pulse">▌</span>
+                )}
+                {shouldCollapse && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent" />
+                )}
+              </div>
+              {(shouldCollapse || expanded) && !message.streaming && (
+                <button
+                  type="button"
+                  onClick={onToggleExpand}
+                  className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 transition-colors hover:text-zinc-200"
+                >
+                  {expanded
+                    ? "접기 ↑"
+                    : `더 보기 ↓ · ${message.text.length.toLocaleString()}자`}
+                </button>
               )}
-            </div>
+            </>
           ) : message.streaming ? (
             <span className="italic text-zinc-500">
               CLI 부팅·인증 체크 중… (CLI 모드는 첫 응답까지 ~25초 걸릴 수

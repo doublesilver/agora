@@ -91,11 +91,22 @@ export default function Home() {
             ...c,
             systemPrompt: mergeWithReference(c.systemPrompt, referenceDoc),
           }));
-          const enabledIds = merged.filter((c) => c.enabled).map((c) => c.id);
-          const effectiveSummarizer =
+          const enabled = merged.filter((c) => c.enabled);
+          const enabledIds = enabled.map((c) => c.id);
+          // 사용자가 명시 선택했으면 그대로, 아니면 자동 fallback —
+          // 결과(final_artifact)는 사용자가 토론을 한 핵심 이유라
+          // 미지정/끄기 상태에서도 산출물이 따라오게 한다. 우선순위는 API+키
+          // (가장 빠르고 안정), 그 다음 CLI(설치 가정).
+          const explicit =
             summarizerId && enabledIds.includes(summarizerId)
               ? summarizerId
-              : undefined;
+              : null;
+          const apiFallback = enabled.find(
+            (c) => c.mode === "api" && c.apiKey.trim().length > 0,
+          );
+          const cliFallback = enabled.find((c) => c.mode === "cli");
+          const effectiveSummarizer =
+            explicit ?? apiFallback?.id ?? cliFallback?.id ?? undefined;
           try {
             await actions.startSession(merged, prompt, effectiveSummarizer);
           } catch (err) {

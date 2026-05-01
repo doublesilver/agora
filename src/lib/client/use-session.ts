@@ -275,6 +275,7 @@ function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
         ts: e.ts,
         tone: "info",
         text: `${AGENT_LABEL[e.agentId]} 발언 시작 · 라운드 ${e.turn}${e.model ? ` · ${e.model}` : ""}`,
+        jumpTo: { turn: e.turn, agentId: e.agentId },
       };
     case "agent_end":
       return {
@@ -284,6 +285,7 @@ function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
         text: e.interrupted
           ? `${AGENT_LABEL[e.agentId]} 발언 중단 (interrupted)`
           : `${AGENT_LABEL[e.agentId]} 발언 종료`,
+        jumpTo: { turn: e.turn, agentId: e.agentId },
       };
     case "agent_pass":
       return {
@@ -291,6 +293,7 @@ function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
         ts: e.ts,
         tone: "pass",
         text: `${AGENT_LABEL[e.agentId]} PASS · turn ${e.turn}`,
+        jumpTo: { turn: e.turn, agentId: e.agentId },
       };
     case "agent_timeout":
       return {
@@ -298,6 +301,7 @@ function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
         ts: e.ts,
         tone: "warn",
         text: `${AGENT_LABEL[e.agentId]} timeout ${e.timeoutMs / 1000}s`,
+        jumpTo: { turn: e.turn, agentId: e.agentId },
       };
     case "agent_error": {
       const fe = friendlyError(e.message);
@@ -306,6 +310,7 @@ function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
         ts: e.ts,
         tone: "error",
         text: `${AGENT_LABEL[e.agentId]} ${fe.title}${fe.hint ? ` — ${fe.hint}` : ""}`,
+        jumpTo: { turn: e.turn, agentId: e.agentId },
       };
     }
     case "user_message":
