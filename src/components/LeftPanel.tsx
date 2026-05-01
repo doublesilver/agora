@@ -369,6 +369,7 @@ export function LeftPanel(props: Props) {
         <SummarizerSection
           configs={configs}
           authStates={authStates}
+          cliStatus={cliStatus}
           summarizerId={props.summarizerId}
           setSummarizerId={props.setSummarizerId}
         />
@@ -486,23 +487,27 @@ const END_REASON_LABEL: Record<string, string> = {
 function SummarizerSection({
   configs,
   authStates,
+  cliStatus,
   summarizerId,
   setSummarizerId,
 }: {
   configs: AgentConfig[];
   authStates: Partial<Record<AgentId, AuthState>>;
+  cliStatus: CliStatus;
   summarizerId: AgentId | null;
   setSummarizerId: (next: AgentId | null) => void;
 }) {
-  // 요약 호출은 단발 SDK 호출이라 API 모드 + 키 입력 케이스만 1차 지원.
-  const candidates = configs.filter(
-    (c) => c.enabled && c.mode === "api" && c.apiKey.trim().length > 0,
-  );
+  // API 모드: 키 입력된 후보. CLI 모드: cli-status가 found=true인 후보.
+  const candidates = configs.filter((c) => {
+    if (!c.enabled) return false;
+    if (c.mode === "api") return c.apiKey.trim().length > 0;
+    return cliStatus?.[c.id]?.found === true;
+  });
   return (
     <section className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-          📝 요약 담당
+          📝 결과 정리 담당
         </h2>
         {summarizerId && (
           <button
@@ -516,14 +521,17 @@ function SummarizerSection({
       </div>
       {candidates.length === 0 ? (
         <p className="rounded bg-zinc-900 px-2 py-1.5 text-[11px] text-zinc-500 ring-1 ring-zinc-800">
-          API 모드 + 키 입력된 에이전트가 1개 이상 필요합니다. (CLI 전용은 1차
-          미지원)
+          API 키 입력 또는 CLI 설치된 활성 에이전트가 1개 이상 필요합니다.
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {candidates.map((c) => {
             const selected = summarizerId === c.id;
-            const valid = authStates[c.id]?.phase === "valid";
+            const ok =
+              c.mode === "api"
+                ? authStates[c.id]?.phase === "valid"
+                : cliStatus?.[c.id]?.found === true;
+            const modeIcon = c.mode === "api" ? "🔑" : "🖥";
             return (
               <button
                 key={c.id}
@@ -536,16 +544,18 @@ function SummarizerSection({
                 }`}
               >
                 <span>{selected ? "🟦" : "⬜"}</span>
+                <span>{modeIcon}</span>
                 <span>{AGENT_LABELS[c.id]}</span>
-                {valid && <span className="text-emerald-300">🟢</span>}
+                {ok && <span className="text-emerald-300">🟢</span>}
               </button>
             );
           })}
         </div>
       )}
       <p className="text-[10px] text-zinc-600 leading-snug">
-        2라운드마다 + 인터럽트 직후 실시간 요약, 종료 시 결론·논점·미해결·액션
-        4섹션 산출물 생성.
+        토론 종료 시 결론·핵심 논점·미해결·액션 아이템 4섹션 산출물을
+        생성합니다. API 모드는 SDK 단발 호출, CLI 모드는 1st-party CLI를 한 번
+        spawn해서 사용합니다 (CLI는 cold-start 25~40s).
       </p>
     </section>
   );

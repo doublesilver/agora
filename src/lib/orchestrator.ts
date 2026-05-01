@@ -16,12 +16,9 @@ import {
 } from "./session-store";
 import { Transcript } from "./transcript";
 import { runRound } from "./orchestrator-round";
-import { runFinalArtifact, runRollingSummary } from "./summarizer";
+import { runFinalArtifact } from "./summarizer";
 
 const now = (): number => Date.now();
-
-/** rolling 요약 주기 — 매 N 라운드마다. 인터럽트 직후에는 별개로 즉시 호출. */
-const ROLLING_SUMMARY_EVERY = 2;
 
 interface CreateSessionOptions {
   id: string;
@@ -63,9 +60,6 @@ export function createSessionState(opts: CreateSessionOptions): SessionState {
     eventLog: [],
     closers: [],
     summarizerId: opts.summarizerId,
-    summarizing: false,
-    lastSummaryTurn: -1,
-    lastSummaryText: "",
   };
 }
 
@@ -78,25 +72,8 @@ export function intervene(
   state.userQueue.push({ text, mode });
   if (mode === "interrupt") {
     state.roundAbort.abort("interrupt");
-    // 인터럽트는 맥락이 한 번 꺾이는 지점이라 즉시 요약을 갱신해 사용자가
-    // "지금까지 무슨 얘기 했는지" 빠르게 잡고 다음 발화를 정할 수 있게 한다.
-    triggerRollingSummary(state, true);
   }
   state.notifier.notify();
-}
-
-/** 라운드 사이 fire-and-forget 요약 호출 — summarizing 가드로 직렬화. */
-function triggerRollingSummary(state: SessionState, force: boolean): void {
-  if (!state.summarizerId) return;
-  if (state.summarizing) return;
-  if (!force && state.turn - state.lastSummaryTurn < ROLLING_SUMMARY_EVERY) {
-    return;
-  }
-  state.summarizing = true;
-  state.lastSummaryTurn = state.turn;
-  void runRollingSummary(state).finally(() => {
-    state.summarizing = false;
-  });
 }
 
 export function pause(state: SessionState): void {
@@ -252,8 +229,6 @@ export async function runSession(state: SessionState): Promise<void> {
     drainUserQueue(state);
 
     const anySpeak = await runRound(state);
-
-    if (anySpeak) triggerRollingSummary(state, false);
 
     if (await maybeEnterIdle(state, anySpeak)) {
       endReason = "user_stop";

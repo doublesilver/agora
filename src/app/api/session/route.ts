@@ -40,11 +40,15 @@ export async function POST(req: Request) {
 
   const sessionId = randomUUID();
   const adapters = body.agents.map(createAdapter);
+  // 결과 정리 담당은 활성 에이전트 중 1명. API 모드는 키 검사만, CLI 모드는
+  // 클라이언트가 cli-status를 거쳐 후보 노출 — 서버는 활성 여부만 확인.
   const summarizerId =
     body.summarizerId &&
-    body.agents.some(
-      (a) => a.id === body.summarizerId && a.mode === "api" && !!a.apiKey,
-    )
+    body.agents.some((a) => {
+      if (a.id !== body.summarizerId) return false;
+      if (a.mode === "api") return !!a.apiKey;
+      return a.mode === "cli";
+    })
       ? body.summarizerId
       : undefined;
   const state = createSessionState({

@@ -99,6 +99,63 @@ export function isTerminationSignal(
   return signal === "SIGTERM" || code === 143 || code === 130;
 }
 
+/** 단발 호출 — stdout을 통째로 모아 trim 후 반환. 비스트리밍 final 산출물 등에 사용.
+ * - signal abort 또는 timeoutMs 도달 시 SIGTERM → reject('aborted')
+ * - exit code !== 0 시 stderr 마지막 500자 포함하여 reject. */
+export function runCliOneshot(
+  command: string,
+  args: string[],
+  signal: AbortSignal,
+  timeoutMs: number = 60_000,
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const onAbort = () => {
+      if (!child.killed) child.kill("SIGTERM");
+    };
+    if (signal.aborted) onAbort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+
+    const timer = setTimeout(() => {
+      if (!child.killed) child.kill("SIGTERM");
+      reject(new Error(`${command} CLI timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (b: Buffer) => {
+      stdout += b.toString();
+    });
+    child.stderr?.on("data", (b: Buffer) => {
+      stderr += b.toString();
+      if (stderr.length > 2000) stderr = stderr.slice(-2000);
+    });
+
+    child.on("error", (err: Error) => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
+      reject(err);
+    });
+    child.on("close", (code, sig) => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
+      if (isTerminationSignal(code, sig)) {
+        reject(new Error("aborted"));
+        return;
+      }
+      if (code !== 0) {
+        reject(
+          new Error(
+            `${command} CLI exited code=${code}: ${stderr.slice(-500)}`,
+          ),
+        );
+        return;
+      }
+      resolve(stdout.trim());
+    });
+  });
+}
+
 /** 세션 시작 시 백그라운드에서 가벼운 호출(--version)로 binary/페이지캐시 워밍업.
  * fire-and-forget. 첫 실제 speak() spawn의 cold-start 5~15s 흡수 목표. */
 export function warmupCli(command: string): void {

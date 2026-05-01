@@ -15,7 +15,7 @@
 - 어댑터: Claude API/CLI · Codex(OpenAI) API/CLI · Gemini API/CLI — **6종 모두 1차 제출 포함**
 - 차별화 코드:
   - 직렬 라운드 오케스트레이터 + 4종 사용자 개입(interrupt/queue/pause·resume/stop) + 30턴·50k토큰·5분 시간 캡 + 시스템 프롬프트 핫스왑
-  - **요약 담당(summarizer)** — 사용자가 지정한 1명이 라운드마다 실시간 요약 + 종료 시 `결론/핵심논점/미해결/액션아이템` 4섹션 산출물 (API 모드 3종 한정, ADR §A9)
+  - **결과 정리 담당(summarizer)** — 사용자가 지정한 1명이 종료 시 `결론/핵심논점/미해결/액션아이템` 4섹션 산출물 생성 (API + CLI 모드 모두 지원, ADR §A9)
 
 스크린샷 / 시연 녹화: M8 단계에서 첨부.
 
@@ -62,7 +62,7 @@ http://localhost:3000 접속 후:
 
 1. 좌측 패널 → "AI 에이전트 설정" 모달 → 사용할 AI **2개 이상 활성화**
 2. 모드 선택 (API: 키 입력 / CLI: 머신에 설치된 CLI 사용)
-3. (선택) "📝 요약 담당" 칩에서 1명 지정 — 라운드마다 실시간 요약 + 종료 시 4섹션 산출물
+3. (선택) "📝 결과 정리 담당" 칩에서 1명 지정 — 종료 시 결론·핵심논점·미해결·액션아이템 4섹션 산출물 생성 (API+CLI 모두 가능)
 4. 토론 주제 입력 → "세션 시작"
 
 본편 reproduce에 필요한 인증 (활성화한 어댑터만 해당):
@@ -118,7 +118,7 @@ CLI 미설치/미인증·구독 한도 초과 시 라운드에서 `agent_error` 
 
 > 💡 **MCP 도구 자동 활용**: CLI 모드는 사용자 머신의 1st-party CLI를 그대로 spawn하기 때문에 `~/.claude/mcp.json` 등 사용자가 등록한 MCP 서버가 토론 중 그대로 활용된다. 별도 통합 작업 없이 도메인 도구·로컬 파일·외부 API 모두 토론에 끌어들일 수 있음.
 
-> ⚠️ **요약 담당은 API 모드 어댑터만 1차 지원**: rolling 요약은 매 2 라운드마다 + 인터럽트 직후, final 산출물은 종료 시 한 번 호출되는데, CLI spawn cold-start(25~40s)가 라운드마다 누적되면 시연 흐름이 깨진다. 그래서 좌패널 "📝 요약 담당" 칩은 **API 모드 + 키 검증된 후보**만 노출한다. CLI 전용 세션은 요약 비활성으로 동작 (transcript와 Export는 그대로). 자세한 ADR은 `AGENTS.md` §A9 참조.
+> 💡 **결과 정리 담당은 CLI도 지원**: 토론 종료 시 1회 호출이라 CLI cold-start(25~40s)를 흡수할 여유가 있어, 좌패널 "📝 결과 정리 담당" 칩은 API+키 후보 + CLI 인증된 후보를 모두 노출한다. CLI 모드는 `claude -p` / `codex exec --skip-git-repo-check --sandbox read-only` / `gemini -p -y -m gemini-2.5-flash`로 단발 spawn해 stdout을 받는다. 호출 실패 시 `summary_error` 한 번 emit되고 transcript·Export는 그대로 유지. 실시간 요약(rolling)은 호출 비용·UX 노이즈 균형이 안 맞아 1차 제출에서 제외. 자세한 ADR은 `AGENTS.md` §A9 참조.
 
 | 증상                                      | 원인                                    | 해결                         |
 | ----------------------------------------- | --------------------------------------- | ---------------------------- |
@@ -141,7 +141,7 @@ CLI 미설치/미인증·구독 한도 초과 시 라운드에서 `agent_error` 
 - `system_prompt_change`
 - `status` (running|idle|paused|stopped)
 - `usage` (input/output 토큰 + sessionTotal)
-- `summary_update` / `final_artifact` / `summary_error` (요약 담당 지정 시에만, API 모드 3종 한정)
+- `final_artifact` / `summary_error` (결과 정리 담당 지정 시 종료 직전 1회, API+CLI 모드 모두)
 
 API 키 / OAuth 토큰은 절대 기록되지 않는다. 자동 검증: `bash scripts/scrub-check.sh logs/<id>.jsonl`.
 

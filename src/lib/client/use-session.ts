@@ -36,7 +36,6 @@ const initialView: SessionView = {
   sessionStartTs: null,
   agentStats: {},
   activityLog: [],
-  liveSummary: null,
   finalArtifact: null,
   summaryError: null,
 };
@@ -96,7 +95,6 @@ export function useSession() {
         "status",
         "usage",
         "session_end",
-        "summary_update",
         "final_artifact",
         "summary_error",
       ];
@@ -322,13 +320,6 @@ function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
         tone: "system",
         text: `세션 종료 — ${e.reason}`,
       };
-    case "summary_update":
-      return {
-        id: `act-${e.ts}-summary`,
-        ts: e.ts,
-        tone: "info",
-        text: `${AGENT_LABEL[e.summarizerId]} 실시간 요약 갱신 · 라운드 ${e.atTurn}`,
-      };
     case "final_artifact":
       return {
         id: `act-${e.ts}-final`,
@@ -503,17 +494,6 @@ function applyEvent(prev: SessionView, e: OrchestratorEvent): SessionView {
         status: "stopped",
         endReason: e.reason,
         activeSpeaker: null,
-      };
-    case "summary_update":
-      return {
-        ...prev,
-        liveSummary: {
-          text: e.text,
-          atTurn: e.atTurn,
-          summarizerId: e.summarizerId,
-          ts: e.ts,
-        },
-        summaryError: null,
       };
     case "final_artifact":
       return {

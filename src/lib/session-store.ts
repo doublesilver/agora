@@ -70,13 +70,6 @@ export type OrchestratorEvent =
       ts: number;
     }
   | {
-      type: "summary_update";
-      text: string;
-      atTurn: number;
-      summarizerId: AgentId;
-      ts: number;
-    }
-  | {
       type: "final_artifact";
       text: string;
       summarizerId: AgentId;
@@ -84,7 +77,7 @@ export type OrchestratorEvent =
     }
   | {
       type: "summary_error";
-      stage: "rolling" | "final";
+      stage: "final";
       message: string;
       ts: number;
     };
@@ -126,14 +119,8 @@ export interface SessionState {
   eventLog: OrchestratorEvent[];
   /** 종료 후 정리 시 호출. JSONL 로거가 등록. */
   closers: Array<() => void | Promise<void>>;
-  /** 요약 담당 에이전트 id — 미설정 시 요약 비활성. */
+  /** 요약 담당 에이전트 id — 미설정 시 final 산출물 비활성. */
   summarizerId?: AgentId;
-  /** rolling 요약 진행 중 플래그 — 중복 호출 방지. */
-  summarizing: boolean;
-  /** 마지막 rolling 요약 emit 시점 turn — 주기 판정용. */
-  lastSummaryTurn: number;
-  /** 가장 최근 rolling 요약 텍스트 (final 생성 시 입력으로도 사용). */
-  lastSummaryText: string;
 }
 
 const sessions = new Map<string, SessionState>();

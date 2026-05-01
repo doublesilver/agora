@@ -124,16 +124,17 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 - textarea 옆에 작은 `↺ Reset to default` 버튼 — 클릭 시 시드로 복원.
 - 시드 문자열은 `src/lib/agents/role-seeds.ts` 상수로 분리, UI/백엔드 양쪽 단일 출처.
 
-### A9. 요약 담당 (실시간 요약 + 최종 산출물)
+### A9. 결과 정리 담당 (final 산출물)
 
-토론 중 사용자가 "지금까지 무슨 얘기 했는지" 빠르게 잡고 다음 발화를 정할 수 있게, 그리고 종료 시 결과물을 한 번에 회수할 수 있게 **요약 담당(summarizer)** 한 명을 사용자가 좌패널에서 지정한다.
+토론 종료 시 결과물을 한 번에 회수할 수 있게 **결과 정리 담당(summarizer)** 한 명을 사용자가 좌패널에서 지정한다. 1차 제출에서는 종료 시 1회 final 산출물만 생성한다 (rolling 요약은 호출 비용·UX 노이즈 균형이 맞지 않아 제외).
 
-- **선택**: 좌패널 "📝 요약 담당" 섹션. 활성 에이전트 중 **API 모드 + 키 입력**된 후보만 노출(1차 구현 한계). 미지정 시 요약 비활성.
-- **rolling 요약**: 매 2 라운드마다 + **인터럽트 직후** transcript 스냅샷을 압축. 새 의견은 추가하지 말고 transcript 안에 있는 것만 4~8 bullets / 600자 이내로. 결과는 `summary_update` 이벤트로 SSE+JSONL emit.
-- **final 산출물**: `session_end` 직전 한 번. `## 결론 / ## 핵심 논점 / ## 미해결 / ## 액션 아이템` 4섹션 markdown 강제. 결과는 `final_artifact` 이벤트.
-- **단발 호출 정책**: 요약은 `speak()`를 우회하고 SDK 단발 호출(타임아웃 45s, AbortController)로 직접 호출 — PASS 규약·라운드 시그널이 끼면 압축 의도와 충돌. 어댑터 인터페이스 일관성을 한 번 깨는 대신 요약 호출 비용·지연을 격리.
-- **CLI 모드 1차 미지원**: child_process spawn cold-start 25~40s가 라운드마다 누적되면 시연 흐름이 무너지므로 1차 제출에서는 API 3종만. 좌패널 칩에서 CLI 후보는 자동 제외 + 요약 미선택 시 silent skip — `summary_error` 1회 emit 외 회귀 없음.
+- **선택**: 좌패널 "📝 결과 정리 담당" 섹션. 활성 에이전트 중 **API 모드(키 입력) 또는 CLI 모드(인증 확인)** 후보를 모두 노출. 미지정 시 산출물 비활성 — transcript와 Export(markdown)는 그대로.
+- **final 산출물**: `session_end` 직전 한 번 호출. `## 결론 / ## 핵심 논점 / ## 미해결 / ## 액션 아이템` 4섹션 markdown 강제. 결과는 `final_artifact` 이벤트로 SSE+JSONL emit.
+- **단발 호출 정책**: 산출물 생성은 `speak()`를 우회한다 — PASS 규약·라운드 시그널이 끼면 압축 의도와 충돌하기 때문. 어댑터 인터페이스 일관성을 한 번 깨는 대신 호출 비용·지연을 격리.
+  - **API 모드**: SDK 단발 호출 (Anthropic `messages.create` / OpenAI `chat.completions.create` / GoogleGenAI `generateContent`). 타임아웃 45s + AbortController. `state.sessionAbort.signal`과 합성되어 STOP 시 즉시 끊긴다.
+  - **CLI 모드**: 1st-party CLI를 `runCliOneshot`(stdout 통째 collect)로 한 번 spawn. 시그니처는 `claude -p "<prompt>"` / `codex exec --skip-git-repo-check --sandbox read-only "<prompt>"` / `gemini -p "<prompt>" -y -m gemini-2.5-flash`. 타임아웃 90s (cold-start 25~40s 흡수).
 - **Export 합치기**: `transcriptToMarkdown`이 `eventLog`에서 가장 최근 `final_artifact`를 찾아 transcript 뒤에 append. JSONL 원본을 보지 않는 채점자도 markdown 한 개로 결론까지 도달.
+- **AGORA_FAKE=1 모드**: 어댑터가 fake echo이므로 산출물도 silent skip — 백업 시연 일관성 유지.
 
 ## UI/UX 설계
 
@@ -365,13 +366,12 @@ loop:
 {"type":"agent_timeout","agentId":"gemini","turn":3,"timeoutMs":30000,"ts":...}
 {"type":"agent_error","agentId":"codex","turn":3,"message":"...redacted-safe...","ts":...}
 {"type":"usage","agentId":"claude","turn":3,"inputTokens":1234,"outputTokens":456,"sessionTotal":12345,"ts":...}
-{"type":"summary_update","summarizerId":"claude","atTurn":4,"text":"...rolling markdown...","ts":...}
 {"type":"final_artifact","summarizerId":"claude","text":"## 결론\n...\n## 핵심 논점\n...\n## 미해결\n...\n## 액션 아이템\n...","ts":...}
-{"type":"summary_error","stage":"rolling|final","message":"...redacted-safe...","ts":...}
+{"type":"summary_error","stage":"final","message":"...redacted-safe...","ts":...}
 {"type":"session_end","reason":"user_stop|max_turns|budget_exceeded|time_exceeded","ts":...}
 ```
 
-요약 이벤트 3종(`summary_update`/`final_artifact`/`summary_error`)은 1차 구현에서 **API 모드 어댑터(Claude/GPT/Gemini)에서만** emit된다. CLI 모드 어댑터를 요약 담당으로 지정하면 `summary_error(stage:"rolling|final", message:"CLI 모드 요약은 1차 구현 범위 외")`만 한 번 발생한다. UI는 좌패널 요약 담당 칩에서 API+키 검증된 후보만 노출해 사용자가 잘못 고르지 못하게 가드한다.
+산출물 이벤트 2종(`final_artifact`/`summary_error`)은 결과 정리 담당이 지정된 세션에서만 emit된다. API 모드 3종(Anthropic/OpenAI/GoogleGenAI SDK)과 CLI 모드 3종(`claude`/`codex`/`gemini` 단발 spawn) 모두 지원한다. 호출 실패 시 `summary_error`만 1회 emit되고 transcript·Export는 그대로 유지된다.
 
 API 키 / OAuth 토큰 / CLI 인자는 **절대 로그에 쓰지 않는다**.
 

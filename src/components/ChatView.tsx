@@ -141,7 +141,6 @@ export function ChatView({ view }: Props) {
       onScroll={onScroll}
       className="flex h-full flex-col gap-3 overflow-y-auto bg-zinc-900 px-6 py-6"
     >
-      <LiveSummaryCard view={view} />
       {view.messages.length === 0 && <SetupHints />}
       {view.messages.map((m) => (
         <Bubble key={m.id} message={m} />
@@ -153,38 +152,6 @@ export function ChatView({ view }: Props) {
       )}
       {view.errorRecent && <ErrorBanner errorRecent={view.errorRecent} />}
       <FinalArtifactCard view={view} />
-    </div>
-  );
-}
-
-function LiveSummaryCard({ view }: { view: SessionView }) {
-  const summary = view.liveSummary;
-  if (!summary) return null;
-  // 종료 후엔 final 카드가 있으니 상단 카드는 숨겨 시각 노이즈 줄임.
-  if (view.status === "stopped" && view.finalArtifact) return null;
-  const theme = AGENT_THEME[summary.summarizerId];
-  return (
-    <div className="sticky top-0 z-10 -mx-2 mb-1 rounded-md bg-zinc-950/90 px-3 py-2 shadow-lg ring-1 ring-zinc-800 backdrop-blur">
-      <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wider text-zinc-500">
-        <span>📝 실시간 요약</span>
-        <span className="text-zinc-600">·</span>
-        <span className="normal-case">
-          {theme.emoji} {theme.label} · 라운드 {summary.atTurn}
-        </span>
-      </div>
-      <div className="prose-invert text-[12px] leading-relaxed text-zinc-300">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={MARKDOWN_COMPONENTS}
-        >
-          {summary.text}
-        </ReactMarkdown>
-      </div>
-      {view.summaryError && view.summaryError.stage === "rolling" && (
-        <p className="mt-1 text-[10px] text-amber-300/80">
-          ⚠ 마지막 요약 갱신 실패 — 다음 라운드 종료 시 재시도
-        </p>
-      )}
     </div>
   );
 }

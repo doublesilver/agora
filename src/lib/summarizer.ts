@@ -1,25 +1,20 @@
-/* 요약 담당 에이전트 단발 호출 — rolling/final 두 모드.
+/* 종료 시 최종 산출물(final artifact) 생성 — API 모드 3종 + CLI 모드 3종 모두 지원.
  * speak() 우회: PASS 규약·라운드 시그널 없이 transcript 스냅샷을 한 번만 압축한다.
- * 1차 구현 범위: API 모드 3종(Claude/GPT/Gemini). CLI 모드는 silent skip + 에러 이벤트 X. */
+ * 실시간 요약(rolling)은 호출 비용·UX 노이즈 균형이 맞지 않아 1차 제출 범위에서 제외. */
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
 import type { AgentId, TranscriptEvent } from "./agents/types";
 import { serializeTranscript } from "./agents/adapter-helpers";
+import { runCliOneshot } from "./agents/cli-stream";
 import { emitEvent, type SessionState } from "./session-store";
 
 const now = (): number => Date.now();
 
-/** 단발 호출 타임아웃 — 라운드 첫 토큰 60s보다 약간 짧게. 요약은 빠르게 끊어준다. */
-const SUMMARIZE_TIMEOUT_MS = 45_000;
-
-const ROLLING_INSTRUCTION = `You are the SCRIBE of an ongoing multi-agent debate.
-Read the transcript and write a SHORT live summary (Korean, 4–8 bullet points or under 600 characters):
-- 토론이 지금 어디까지 와 있는지
-- 합의된 점 / 아직 갈리는 점
-- 다음 라운드에서 다뤄야 할 핵심 질문 1~2개
-
-규칙: 새로운 의견을 추가하지 말 것. 이미 transcript에 있는 내용만 정리. 간결한 markdown bullets.`;
+/** API 모드 단발 호출 타임아웃. 라운드 첫 토큰 60s보다 약간 짧게. */
+const API_TIMEOUT_MS = 45_000;
+/** CLI 모드 단발 호출 타임아웃. cold-start 25~40s 흡수용으로 더 길게. */
+const CLI_TIMEOUT_MS = 90_000;
 
 const FINAL_INSTRUCTION = `You are the SCRIBE producing the FINAL artifact of the debate.
 Korean markdown only. 4 sections, in this exact order:
@@ -55,7 +50,7 @@ function transcriptText(events: TranscriptEvent[]): string {
   return serializeTranscript(events);
 }
 
-async function callClaude(
+async function callClaudeApi(
   apiKey: string,
   systemPrompt: string,
   userText: string,
@@ -75,7 +70,7 @@ async function callClaude(
   return block && block.type === "text" ? block.text : "";
 }
 
-async function callGpt(
+async function callGptApi(
   apiKey: string,
   systemPrompt: string,
   userText: string,
@@ -96,7 +91,7 @@ async function callGpt(
   return res.choices[0]?.message?.content ?? "";
 }
 
-async function callGemini(
+async function callGeminiApi(
   apiKey: string,
   systemPrompt: string,
   userText: string,
@@ -111,29 +106,55 @@ async function callGemini(
   return res.text ?? "";
 }
 
+/** CLI 모드 — 1st-party CLI를 단발 호출. 시스템 프롬프트는 user 프롬프트 앞에 inline.
+ * Claude/Gemini는 -p 플래그, Codex는 exec 서브커맨드. 출력은 stdout plain text. */
+async function callClaudeCli(
+  systemPrompt: string,
+  userText: string,
+  signal: AbortSignal,
+): Promise<string> {
+  const prompt = `${systemPrompt}\n\n---\n\n${userText}`;
+  return runCliOneshot("claude", ["-p", prompt], signal, CLI_TIMEOUT_MS);
+}
+
+async function callCodexCli(
+  systemPrompt: string,
+  userText: string,
+  signal: AbortSignal,
+): Promise<string> {
+  const prompt = `${systemPrompt}\n\n---\n\n${userText}`;
+  return runCliOneshot(
+    "codex",
+    ["exec", "--skip-git-repo-check", "--sandbox", "read-only", prompt],
+    signal,
+    CLI_TIMEOUT_MS,
+  );
+}
+
+async function callGeminiCli(
+  systemPrompt: string,
+  userText: string,
+  signal: AbortSignal,
+): Promise<string> {
+  const prompt = `${systemPrompt}\n\n---\n\n${userText}`;
+  return runCliOneshot(
+    "gemini",
+    ["-p", prompt, "-y", "-m", "gemini-2.5-flash"],
+    signal,
+    CLI_TIMEOUT_MS,
+  );
+}
+
 async function callSummarizer(
   spec: SpecLookup,
   systemPrompt: string,
   userText: string,
   externalAbort?: AbortSignal,
 ): Promise<string> {
-  if (spec.mode !== "api") {
-    throw new Error(
-      "summarizer: CLI 모드 요약은 1차 구현 범위 외. API 모드 어댑터를 요약 담당으로 선택하세요.",
-    );
-  }
-  if (!spec.apiKey) {
-    throw new Error(
-      "summarizer: apiKey 누락 — 요약 담당 에이전트의 키를 확인.",
-    );
-  }
   const ac = new AbortController();
-  const timeout = setTimeout(
-    () => ac.abort("summarize-timeout"),
-    SUMMARIZE_TIMEOUT_MS,
-  );
-  // 사용자 STOP/세션 abort 시 SUMMARIZE_TIMEOUT_MS 끝까지 매달리지 않게 합성.
-  // 미합성 시 STOP 후 UI가 최대 45s "running" 상태로 hang.
+  const timeoutMs = spec.mode === "api" ? API_TIMEOUT_MS : CLI_TIMEOUT_MS;
+  const timeout = setTimeout(() => ac.abort("summarize-timeout"), timeoutMs);
+  // 사용자 STOP/세션 abort 시 timeout 끝까지 매달리지 않게 합성.
   if (externalAbort) {
     if (externalAbort.aborted) ac.abort(externalAbort.reason);
     else
@@ -144,57 +165,51 @@ async function callSummarizer(
       );
   }
   try {
-    switch (spec.summarizerId) {
-      case "claude":
-        return await callClaude(spec.apiKey, systemPrompt, userText, ac.signal);
-      case "codex":
-        return await callGpt(spec.apiKey, systemPrompt, userText, ac.signal);
-      case "gemini":
-        return await callGemini(spec.apiKey, systemPrompt, userText, ac.signal);
-      default:
-        throw new Error(`summarizer: 지원 안 된 id ${spec.summarizerId}`);
+    if (spec.mode === "api") {
+      if (!spec.apiKey) {
+        throw new Error("summarizer: apiKey 누락 — 요약 담당 키 확인.");
+      }
+      switch (spec.summarizerId) {
+        case "claude":
+          return await callClaudeApi(
+            spec.apiKey,
+            systemPrompt,
+            userText,
+            ac.signal,
+          );
+        case "codex":
+          return await callGptApi(
+            spec.apiKey,
+            systemPrompt,
+            userText,
+            ac.signal,
+          );
+        case "gemini":
+          return await callGeminiApi(
+            spec.apiKey,
+            systemPrompt,
+            userText,
+            ac.signal,
+          );
+      }
+    } else {
+      switch (spec.summarizerId) {
+        case "claude":
+          return await callClaudeCli(systemPrompt, userText, ac.signal);
+        case "codex":
+          return await callCodexCli(systemPrompt, userText, ac.signal);
+        case "gemini":
+          return await callGeminiCli(systemPrompt, userText, ac.signal);
+      }
     }
+    throw new Error(`summarizer: 지원 안 된 id ${spec.summarizerId}`);
   } finally {
     clearTimeout(timeout);
   }
 }
 
-export async function runRollingSummary(state: SessionState): Promise<void> {
-  // AGORA_FAKE=1 백업 시연에서는 어댑터가 fake echo이므로 요약도 실호출하지 않는다.
-  // 키가 잘못 들어가 있어도 fake 모드 일관성을 깨뜨리지 않게 silent skip.
-  if (process.env.AGORA_FAKE === "1") return;
-  const spec = findSpec(state);
-  if (!spec) return;
-  const transcript = state.transcript.snapshot();
-  if (transcript.length < 2) return; // 사용자 메시지 1개뿐이면 요약할 게 없음.
-
-  try {
-    const text = await callSummarizer(
-      spec,
-      ROLLING_INSTRUCTION,
-      transcriptText(transcript),
-      state.sessionAbort.signal,
-    );
-    if (!text.trim()) return;
-    state.lastSummaryText = text;
-    emitEvent(state, {
-      type: "summary_update",
-      text,
-      atTurn: state.turn,
-      summarizerId: spec.summarizerId,
-      ts: now(),
-    });
-  } catch (err) {
-    emitEvent(state, {
-      type: "summary_error",
-      stage: "rolling",
-      message: ((err as Error)?.message ?? String(err)).slice(0, 300),
-      ts: now(),
-    });
-  }
-}
-
 export async function runFinalArtifact(state: SessionState): Promise<void> {
+  // AGORA_FAKE 백업 시연에서는 어댑터가 fake echo이므로 산출물도 silent skip.
   if (process.env.AGORA_FAKE === "1") return;
   const spec = findSpec(state);
   if (!spec) return;

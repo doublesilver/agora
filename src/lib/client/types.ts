@@ -63,13 +63,6 @@ export interface ActivityEntry {
   text: string;
 }
 
-export interface SessionLiveSummary {
-  text: string;
-  atTurn: number;
-  summarizerId: AgentId;
-  ts: number;
-}
-
 export interface SessionFinalArtifact {
   text: string;
   summarizerId: AgentId;
@@ -96,13 +89,11 @@ export interface SessionView {
   agentStats: Partial<Record<AgentId, AgentRuntimeStats>>;
   /** 메타 이벤트 라이브 피드 (최근 30개, token 제외). */
   activityLog: ActivityEntry[];
-  /** 실시간 요약 — 라운드 종료 후 갱신, 인터럽트 직후도 갱신. */
-  liveSummary: SessionLiveSummary | null;
   /** 종료 시 산출물 — 결론/논점/미해결/액션. */
   finalArtifact: SessionFinalArtifact | null;
-  /** 요약 도중 마지막 에러 — 슬림 카드에 노출. */
+  /** final 산출물 생성 실패 시 사유 — 카드 자리에 안내. */
   summaryError: {
-    stage: "rolling" | "final";
+    stage: "final";
     message: string;
     ts: number;
   } | null;
