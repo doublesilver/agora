@@ -115,6 +115,7 @@ async function callSummarizer(
   spec: SpecLookup,
   systemPrompt: string,
   userText: string,
+  externalAbort?: AbortSignal,
 ): Promise<string> {
   if (spec.mode !== "api") {
     throw new Error(
@@ -131,6 +132,17 @@ async function callSummarizer(
     () => ac.abort("summarize-timeout"),
     SUMMARIZE_TIMEOUT_MS,
   );
+  // 사용자 STOP/세션 abort 시 SUMMARIZE_TIMEOUT_MS 끝까지 매달리지 않게 합성.
+  // 미합성 시 STOP 후 UI가 최대 45s "running" 상태로 hang.
+  if (externalAbort) {
+    if (externalAbort.aborted) ac.abort(externalAbort.reason);
+    else
+      externalAbort.addEventListener(
+        "abort",
+        () => ac.abort(externalAbort.reason),
+        { once: true },
+      );
+  }
   try {
     switch (spec.summarizerId) {
       case "claude":
@@ -148,6 +160,9 @@ async function callSummarizer(
 }
 
 export async function runRollingSummary(state: SessionState): Promise<void> {
+  // AGORA_FAKE=1 백업 시연에서는 어댑터가 fake echo이므로 요약도 실호출하지 않는다.
+  // 키가 잘못 들어가 있어도 fake 모드 일관성을 깨뜨리지 않게 silent skip.
+  if (process.env.AGORA_FAKE === "1") return;
   const spec = findSpec(state);
   if (!spec) return;
   const transcript = state.transcript.snapshot();
@@ -158,6 +173,7 @@ export async function runRollingSummary(state: SessionState): Promise<void> {
       spec,
       ROLLING_INSTRUCTION,
       transcriptText(transcript),
+      state.sessionAbort.signal,
     );
     if (!text.trim()) return;
     state.lastSummaryText = text;
@@ -179,6 +195,7 @@ export async function runRollingSummary(state: SessionState): Promise<void> {
 }
 
 export async function runFinalArtifact(state: SessionState): Promise<void> {
+  if (process.env.AGORA_FAKE === "1") return;
   const spec = findSpec(state);
   if (!spec) return;
   const transcript = state.transcript.snapshot();
@@ -189,6 +206,7 @@ export async function runFinalArtifact(state: SessionState): Promise<void> {
       spec,
       FINAL_INSTRUCTION,
       transcriptText(transcript),
+      state.sessionAbort.signal,
     );
     if (!text.trim()) return;
     emitEvent(state, {
