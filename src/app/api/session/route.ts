@@ -16,6 +16,8 @@ interface SessionRequest {
   agents: AgentSpec[];
   systemPrompts?: Partial<Record<string, string>>;
   userPrompt: string;
+  /** 요약 담당 에이전트 id — 활성 어댑터 중 하나여야 함. 미지정·미일치면 요약 비활성. */
+  summarizerId?: "claude" | "codex" | "gemini";
 }
 
 export async function POST(req: Request) {
@@ -38,14 +40,23 @@ export async function POST(req: Request) {
 
   const sessionId = randomUUID();
   const adapters = body.agents.map(createAdapter);
+  const summarizerId =
+    body.summarizerId &&
+    body.agents.some(
+      (a) => a.id === body.summarizerId && a.mode === "api" && !!a.apiKey,
+    )
+      ? body.summarizerId
+      : undefined;
   const state = createSessionState({
     id: sessionId,
     agents: adapters,
+    agentSpecs: body.agents,
     systemPrompts: (body.systemPrompts ?? {}) as Record<
       "claude" | "codex" | "gemini",
       string
     >,
     userPrompt: body.userPrompt,
+    summarizerId,
   });
 
   const logger = new JsonlLogger(sessionId);

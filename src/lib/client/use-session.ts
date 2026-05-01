@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  ActivityEntry,
   AgentConfig,
   AgentRuntimeStats,
   ChatMessage,
@@ -11,6 +12,15 @@ import type {
   SessionView,
 } from "./types";
 import type { AgentId } from "@/lib/agents/types";
+import { friendlyError } from "./friendly-error";
+
+const ACTIVITY_LOG_CAP = 30;
+
+const AGENT_LABEL: Record<AgentId, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  gemini: "Gemini",
+};
 
 const initialView: SessionView = {
   sessionId: null,
@@ -22,7 +32,13 @@ const initialView: SessionView = {
   errorRecent: null,
   endReason: null,
   activeSpeaker: null,
+  agents: [],
+  sessionStartTs: null,
   agentStats: {},
+  activityLog: [],
+  liveSummary: null,
+  finalArtifact: null,
+  summaryError: null,
 };
 
 function blankStats(): AgentRuntimeStats {
@@ -80,6 +96,9 @@ export function useSession() {
         "status",
         "usage",
         "session_end",
+        "summary_update",
+        "final_artifact",
+        "summary_error",
       ];
       for (const t of TYPES) es.addEventListener(t, handler);
       es.onerror = () => {
@@ -90,7 +109,11 @@ export function useSession() {
   );
 
   const startSession = useCallback(
-    async (configs: AgentConfig[], userPrompt: string) => {
+    async (
+      configs: AgentConfig[],
+      userPrompt: string,
+      summarizerId?: AgentId,
+    ) => {
       const enabled = configs.filter((c) => c.enabled);
       const res = await fetch("/api/session", {
         method: "POST",
@@ -105,6 +128,7 @@ export function useSession() {
             enabled.map((c) => [c.id, c.systemPrompt]),
           ),
           userPrompt,
+          summarizerId,
         }),
       });
       if (!res.ok) {
@@ -112,13 +136,14 @@ export function useSession() {
         throw new Error(`session start failed: ${err}`);
       }
       const { sessionId } = (await res.json()) as { sessionId: string };
+      const startTs = Date.now();
       setView({
         ...initialView,
         sessionId,
         status: "running",
-        messages: [
-          { id: "u-0", role: "user", text: userPrompt, ts: Date.now() },
-        ],
+        agents: enabled.map((c) => c.id),
+        sessionStartTs: startTs,
+        messages: [{ id: "u-0", role: "user", text: userPrompt, ts: startTs }],
       });
       subscribe(sessionId);
       return sessionId;
@@ -166,6 +191,13 @@ export function useSession() {
   );
 
   useEffect(() => {
+    // 페이지 마운트 시 CLI binary 백그라운드 워밍업 — 사용자가 prompt 작성하는 동안
+    // 페이지캐시·모듈 로드 흡수. 실패는 무시.
+    fetch("/api/cli-warmup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }).catch(() => {});
     return () => {
       if (esRef.current) esRef.current.close();
     };
@@ -194,10 +226,145 @@ function patchStats(
   return { ...prev.agentStats, [agentId]: { ...current, ...patch } };
 }
 
-function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
+function appendActivity(
+  log: ActivityEntry[],
+  entry: ActivityEntry,
+): ActivityEntry[] {
+  // SSE 자동 재연결로 동일 이벤트가 replay돼 같은 id가 두 번 들어오는 케이스 방지.
+  // 마지막 ACTIVITY_LOG_CAP 윈도우 안에서만 검사하면 충분 (이전 동일 id는 잘려나감).
+  if (log.some((e) => e.id === entry.id)) return log;
+  const next = [...log, entry];
+  return next.length > ACTIVITY_LOG_CAP
+    ? next.slice(next.length - ACTIVITY_LOG_CAP)
+    : next;
+}
+
+function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
   switch (e.type) {
     case "session_start":
-      return { ...prev, sessionId: e.sessionId, status: "running" };
+      return {
+        id: `act-${e.ts}-start`,
+        ts: e.ts,
+        tone: "system",
+        text: `세션 시작 — agents: ${e.agents.map((a) => AGENT_LABEL[a.id]).join(", ")}`,
+      };
+    case "agent_start":
+      return {
+        id: `act-${e.ts}-${e.agentId}-start`,
+        ts: e.ts,
+        tone: "info",
+        text: `${AGENT_LABEL[e.agentId]} 발언 시작 · 라운드 ${e.turn}${e.model ? ` · ${e.model}` : ""}`,
+      };
+    case "agent_end":
+      return {
+        id: `act-${e.ts}-${e.agentId}-end`,
+        ts: e.ts,
+        tone: e.interrupted ? "warn" : "info",
+        text: e.interrupted
+          ? `${AGENT_LABEL[e.agentId]} 발언 중단 (interrupted)`
+          : `${AGENT_LABEL[e.agentId]} 발언 종료`,
+      };
+    case "agent_pass":
+      return {
+        id: `act-${e.ts}-${e.agentId}-pass`,
+        ts: e.ts,
+        tone: "pass",
+        text: `${AGENT_LABEL[e.agentId]} PASS · turn ${e.turn}`,
+      };
+    case "agent_timeout":
+      return {
+        id: `act-${e.ts}-${e.agentId}-to`,
+        ts: e.ts,
+        tone: "warn",
+        text: `${AGENT_LABEL[e.agentId]} timeout ${e.timeoutMs / 1000}s`,
+      };
+    case "agent_error": {
+      const fe = friendlyError(e.message);
+      return {
+        id: `act-${e.ts}-${e.agentId}-err`,
+        ts: e.ts,
+        tone: "error",
+        text: `${AGENT_LABEL[e.agentId]} ${fe.title}${fe.hint ? ` — ${fe.hint}` : ""}`,
+      };
+    }
+    case "user_message":
+      return {
+        id: `act-${e.ts}-user`,
+        ts: e.ts,
+        tone: "system",
+        text: `사용자 ${e.mode === "interrupt" ? "인터럽트" : "큐"}: ${e.text.slice(0, 60)}`,
+      };
+    case "system_prompt_change":
+      return {
+        id: `act-${e.ts}-${e.agentId}-prompt`,
+        ts: e.ts,
+        tone: "system",
+        text: `${AGENT_LABEL[e.agentId]} 시스템 프롬프트 핫스왑`,
+      };
+    case "status":
+      return {
+        id: `act-${e.ts}-status`,
+        ts: e.ts,
+        tone: "system",
+        text: `상태 → ${e.value}`,
+      };
+    case "usage":
+      return {
+        id: `act-${e.ts}-${e.agentId}-usage`,
+        ts: e.ts,
+        tone: "info",
+        text: `${AGENT_LABEL[e.agentId]} usage ${e.inputTokens}↓ ${e.outputTokens}↑ (총 ${e.sessionTotal})`,
+      };
+    case "session_end":
+      return {
+        id: `act-${e.ts}-end`,
+        ts: e.ts,
+        tone: "system",
+        text: `세션 종료 — ${e.reason}`,
+      };
+    case "summary_update":
+      return {
+        id: `act-${e.ts}-summary`,
+        ts: e.ts,
+        tone: "info",
+        text: `${AGENT_LABEL[e.summarizerId]} 실시간 요약 갱신 · 라운드 ${e.atTurn}`,
+      };
+    case "final_artifact":
+      return {
+        id: `act-${e.ts}-final`,
+        ts: e.ts,
+        tone: "system",
+        text: `${AGENT_LABEL[e.summarizerId]} 최종 산출물 생성`,
+      };
+    case "summary_error":
+      return {
+        id: `act-${e.ts}-summary-err`,
+        ts: e.ts,
+        tone: "warn",
+        text: `요약 실패 (${e.stage}) — ${e.message}`,
+      };
+    default:
+      return null;
+  }
+}
+
+function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
+  const next = applyEvent(prev, e);
+  const entry = activityFromEvent(e);
+  if (!entry) return next;
+  return { ...next, activityLog: appendActivity(next.activityLog, entry) };
+}
+
+function applyEvent(prev: SessionView, e: OrchestratorEvent): SessionView {
+  switch (e.type) {
+    case "session_start":
+      return {
+        ...prev,
+        sessionId: e.sessionId,
+        status: "running",
+        agents: e.agents.map((a) => a.id),
+        sessionStartTs: e.ts,
+      };
     case "status":
       return { ...prev, status: e.value };
     case "user_message": {
@@ -206,6 +373,7 @@ function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
         role: "user",
         text: e.text,
         ts: e.ts,
+        mode: e.mode,
       };
       return { ...prev, messages: [...prev.messages, msg] };
     }
@@ -230,6 +398,7 @@ function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
           startedAt: e.ts,
           firstTokenAt: null,
           endedAt: null,
+          model: e.model,
         }),
       };
     }
@@ -334,6 +503,32 @@ function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
         status: "stopped",
         endReason: e.reason,
         activeSpeaker: null,
+      };
+    case "summary_update":
+      return {
+        ...prev,
+        liveSummary: {
+          text: e.text,
+          atTurn: e.atTurn,
+          summarizerId: e.summarizerId,
+          ts: e.ts,
+        },
+        summaryError: null,
+      };
+    case "final_artifact":
+      return {
+        ...prev,
+        finalArtifact: {
+          text: e.text,
+          summarizerId: e.summarizerId,
+          ts: e.ts,
+        },
+        summaryError: null,
+      };
+    case "summary_error":
+      return {
+        ...prev,
+        summaryError: { stage: e.stage, message: e.message, ts: e.ts },
       };
     case "system_prompt_change":
       return prev;

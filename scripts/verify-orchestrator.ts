@@ -1,4 +1,4 @@
-/* 오케스트레이터 검증 — fake 어댑터 위에서 5 시나리오. */
+/* 오케스트레이터 검증 — fake 어댑터 위에서 시나리오 9개. */
 import {
   createSessionState,
   intervene,
@@ -16,6 +16,10 @@ import type {
   SpeakInput,
   SpeakResult,
 } from "../src/lib/agents/types";
+import {
+  MAX_SESSION_DURATION_MS,
+  MAX_SESSION_TOKENS,
+} from "../src/lib/constants";
 
 function collect(state: ReturnType<typeof createSessionState>) {
   const events: OrchestratorEvent[] = [];
@@ -46,6 +50,7 @@ async function scenario_normal() {
   const state = createSessionState({
     id: "t1",
     agents: [claude, codex],
+    agentSpecs: [],
     systemPrompts: {},
     userPrompt: "design a survival energy system",
   });
@@ -68,6 +73,7 @@ async function scenario_interrupt() {
   const state = createSessionState({
     id: "t2",
     agents: [a, b],
+    agentSpecs: [],
     systemPrompts: {},
     userPrompt: "test",
   });
@@ -101,6 +107,7 @@ async function scenario_timeout() {
   const state = createSessionState({
     id: "t3",
     agents: [slow, ok],
+    agentSpecs: [],
     systemPrompts: {},
     userPrompt: "test",
   });
@@ -131,6 +138,7 @@ async function scenario_error() {
   const state = createSessionState({
     id: "t4",
     agents: [broken, ok],
+    agentSpecs: [],
     systemPrompts: {},
     userPrompt: "test",
   });
@@ -151,6 +159,7 @@ async function scenario_pause_resume() {
   const state = createSessionState({
     id: "t5",
     agents: [a, b],
+    agentSpecs: [],
     systemPrompts: {},
     userPrompt: "test",
   });
@@ -175,6 +184,7 @@ async function scenario_hotswap() {
   const state = createSessionState({
     id: "t6",
     agents: [a, b],
+    agentSpecs: [],
     systemPrompts: {},
     userPrompt: "test",
   });
@@ -186,6 +196,69 @@ async function scenario_hotswap() {
   console.log(summarize(events), "hotswaps=", hotswaps.length);
 }
 
+async function scenario_paused_stop() {
+  console.log("\n=== 7. PAUSE 중 STOP — session_end 단일 emit 검증 ===");
+  const a = createFakeAdapter("claude", {
+    passProbability: 0,
+    tokenDelayMs: 5,
+  });
+  const b = createFakeAdapter("codex", { passProbability: 0, tokenDelayMs: 5 });
+  const state = createSessionState({
+    id: "t7",
+    agents: [a, b],
+    agentSpecs: [],
+    systemPrompts: {},
+    userPrompt: "test",
+  });
+  const events = collect(state);
+  setTimeout(() => pause(state), 200);
+  setTimeout(() => stop(state), 600); // paused 중 stop
+  await runSession(state);
+  const ends = events.filter((e) => e.type === "session_end");
+  console.log(summarize(events), "session_end_count=", ends.length);
+}
+
+async function scenario_budget_cap() {
+  console.log("\n=== 8. 토큰 예산 캡 도달 (state.sessionTokens 직접 조작) ===");
+  const a = createFakeAdapter("claude", {
+    passProbability: 0,
+    tokenDelayMs: 5,
+  });
+  const b = createFakeAdapter("codex", { passProbability: 0, tokenDelayMs: 5 });
+  const state = createSessionState({
+    id: "t8",
+    agents: [a, b],
+    agentSpecs: [],
+    systemPrompts: {},
+    userPrompt: "test",
+  });
+  // 첫 라운드 가드에서 budget_exceeded 즉시 emit.
+  state.sessionTokens = MAX_SESSION_TOKENS;
+  const events = collect(state);
+  await runSession(state);
+  console.log(summarize(events));
+}
+
+async function scenario_time_cap() {
+  console.log("\n=== 9. 시간 캡 도달 (startedAt 과거로 조작) ===");
+  const a = createFakeAdapter("claude", {
+    passProbability: 0,
+    tokenDelayMs: 5,
+  });
+  const b = createFakeAdapter("codex", { passProbability: 0, tokenDelayMs: 5 });
+  const state = createSessionState({
+    id: "t9",
+    agents: [a, b],
+    agentSpecs: [],
+    systemPrompts: {},
+    userPrompt: "test",
+  });
+  state.startedAt = Date.now() - MAX_SESSION_DURATION_MS - 1000;
+  const events = collect(state);
+  await runSession(state);
+  console.log(summarize(events));
+}
+
 async function main() {
   await scenario_normal();
   await scenario_interrupt();
@@ -193,6 +266,9 @@ async function main() {
   await scenario_error();
   await scenario_pause_resume();
   await scenario_hotswap();
+  await scenario_paused_stop();
+  await scenario_budget_cap();
+  await scenario_time_cap();
   console.log("\n[verify-orchestrator] 모든 시나리오 종료");
 }
 

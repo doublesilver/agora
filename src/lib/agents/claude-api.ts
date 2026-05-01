@@ -1,10 +1,13 @@
-/* Claude API 어댑터 — @anthropic-ai/sdk messages.stream. M0 정찰 결과 적용. */
+/* Claude API 어댑터 — @anthropic-ai/sdk messages.stream + prompt caching.
+ * cache_control 2개: system 블록, user 콘텐츠의 prior(직전 발언 제외) 블록.
+ * 같은 라운드 내 다음 화자도 prior prefix는 캐시 히트 → TTFT/비용 절감. */
 import Anthropic from "@anthropic-ai/sdk";
 import type {
   AgentAdapter,
   AgentUsage,
   SpeakInput,
   SpeakResult,
+  TranscriptEvent,
 } from "./types";
 import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
 
@@ -16,6 +19,26 @@ interface ClaudeApiOptions {
   model?: string;
 }
 
+type TextBlock = {
+  type: "text";
+  text: string;
+  cache_control?: { type: "ephemeral" };
+};
+
+function buildUserContent(transcript: TranscriptEvent[]): TextBlock[] {
+  if (transcript.length <= 1) {
+    return [{ type: "text", text: serializeTranscript(transcript) }];
+  }
+  return [
+    {
+      type: "text",
+      text: serializeTranscript(transcript.slice(0, -1)),
+      cache_control: { type: "ephemeral" },
+    },
+    { type: "text", text: serializeTranscript(transcript.slice(-1)) },
+  ];
+}
+
 export function createClaudeApiAdapter(opts: ClaudeApiOptions): AgentAdapter {
   if (!opts.apiKey) throw new Error("claude-api: apiKey required");
   const client = new Anthropic({ apiKey: opts.apiKey });
@@ -24,16 +47,24 @@ export function createClaudeApiAdapter(opts: ClaudeApiOptions): AgentAdapter {
   return {
     id: "claude",
     mode: "api",
+    model,
     async speak(input: SpeakInput): Promise<SpeakResult> {
       const system = buildSystemPrompt("claude", input.systemPrompt);
-      const userText = serializeTranscript(input.transcript);
 
       const stream = client.messages.stream(
         {
           model,
           max_tokens: MAX_TOKENS,
-          system,
-          messages: [{ role: "user", content: userText }],
+          system: [
+            {
+              type: "text",
+              text: system,
+              cache_control: { type: "ephemeral" },
+            },
+          ],
+          messages: [
+            { role: "user", content: buildUserContent(input.transcript) },
+          ],
         },
         { signal: input.signal },
       );
@@ -73,8 +104,18 @@ export function createClaudeApiAdapter(opts: ClaudeApiOptions): AgentAdapter {
           stream
             .finalMessage()
             .then((msg) => {
+              const u = msg.usage as unknown as Record<
+                string,
+                number | undefined
+              >;
+              // input_tokens는 캐시 미스 부분만 카운트. 토큰 캡(MAX_SESSION_TOKENS)을
+              // "총 입력 토큰" 단위로 산정하기 위해 cache_creation/cache_read를 합산.
+              // 비용 가중(cache_read 1/10, cache_creation 1.25배)은 적용하지 않음 — 캡은 토큰 절대량 기준.
+              const cacheCreate = u?.cache_creation_input_tokens ?? 0;
+              const cacheRead = u?.cache_read_input_tokens ?? 0;
               usagePromise = Promise.resolve({
-                inputTokens: msg.usage?.input_tokens ?? 0,
+                inputTokens:
+                  (msg.usage?.input_tokens ?? 0) + cacheCreate + cacheRead,
                 outputTokens: msg.usage?.output_tokens ?? 0,
               });
               finish();

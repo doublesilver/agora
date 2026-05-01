@@ -1,7 +1,6 @@
 /* Claude CLI 어댑터 — child_process spawn + stream-json 라인 파싱.
  * M0 정찰 결과: 라인 경계 깨끗(R7 폴백 불필요), 다수의 system hook 라인 + 1개 이상 assistant + 마지막 result.
  */
-import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import type {
   AgentAdapter,
@@ -10,6 +9,11 @@ import type {
   SpeakResult,
 } from "./types";
 import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
+import {
+  createStreamQueue,
+  isTerminationSignal,
+  spawnWithAbort,
+} from "./cli-stream";
 
 interface ClaudeCliOptions {
   command?: string; // 기본 'claude'
@@ -48,45 +52,24 @@ export function createClaudeCliAdapter(
       const transcriptText = serializeTranscript(input.transcript);
       const fullPrompt = `${system}\n\n---\n${transcriptText}`;
 
-      const child = spawn(
+      const handle = spawnWithAbort(
         command,
         ["-p", fullPrompt, "--output-format", "stream-json", "--verbose"],
-        { stdio: ["ignore", "pipe", "pipe"] },
+        input.signal,
       );
-
-      // AbortSignal → SIGTERM
-      const onAbort = () => {
-        if (!child.killed) child.kill("SIGTERM");
-      };
-      input.signal.addEventListener("abort", onAbort, { once: true });
 
       let cumulativeText = "";
       let finalResult: string | null = null;
       let usage: AgentUsage = { inputTokens: 0, outputTokens: 0 };
-      let stderrTail = "";
-      child.stderr.on("data", (buf: Buffer) => {
-        stderrTail += buf.toString();
-        if (stderrTail.length > 2000) stderrTail = stderrTail.slice(-2000);
+
+      const queue = createStreamQueue(() => {
+        handle.detachAbort();
+        if (!handle.child.killed && handle.child.exitCode === null) {
+          handle.child.kill("SIGTERM");
+        }
       });
 
-      const rl = createInterface({ input: child.stdout });
-
-      // 라인 → 큐 → async iterator
-      const queue: string[] = [];
-      const waiters: Array<(v: IteratorResult<string>) => void> = [];
-      let done = false;
-      let error: unknown = null;
-
-      const push = (chunk: string) => {
-        if (waiters.length > 0) waiters.shift()!({ value: chunk, done: false });
-        else queue.push(chunk);
-      };
-      const finish = () => {
-        done = true;
-        while (waiters.length > 0)
-          waiters.shift()!({ value: "" as string, done: true });
-      };
-
+      const rl = createInterface({ input: handle.child.stdout! });
       rl.on("line", (line) => {
         if (!line.trim()) return;
         try {
@@ -96,7 +79,7 @@ export function createClaudeCliAdapter(
             if (text) {
               const delta = text.slice(cumulativeText.length);
               cumulativeText = text;
-              if (delta) push(delta);
+              if (delta) queue.push(delta);
             }
           } else if (ev?.type === "result") {
             finalResult = typeof ev.result === "string" ? ev.result : null;
@@ -113,31 +96,27 @@ export function createClaudeCliAdapter(
         }
       });
 
-      child.on("error", (err) => {
-        error = err;
-        finish();
-      });
-      child.on("exit", (code, signal) => {
-        // 사용자 STOP/인터럽트로 SIGTERM 받으면 input.signal.aborted=true → 에러 아닌 정상 종료.
+      handle.child.on("error", (err) => queue.finish(err));
+      handle.child.on("exit", (code, sig) => {
         const aborted = input.signal.aborted;
-        const sigterm = signal === "SIGTERM" || code === 143 || code === 130;
-        if (aborted || sigterm) {
-          // assistant 청크 없이 result만 도착한 경우 처리 후 finish
+        const terminated = isTerminationSignal(code, sig);
+        if (aborted || terminated) {
           if (cumulativeText.length === 0 && finalResult) {
-            push(finalResult);
+            queue.push(finalResult);
           }
-          finish();
+          queue.finish();
           return;
         }
-        // (이하 기존 분기)
-        // assistant 청크가 없었지만 result만 도착한 경우 finalResult를 한 번에 emit
         if (cumulativeText.length === 0 && finalResult) {
-          push(finalResult);
+          queue.push(finalResult);
         }
-        if (code !== 0 && !error) {
-          error = new Error(
-            `claude CLI exited code=${code} signal=${signal} stderr=${stderrTail.slice(-200)}`,
+        if (code !== 0) {
+          queue.finish(
+            new Error(
+              `claude CLI exited code=${code} signal=${sig} stderr=${handle.getStderrTail().slice(-200)}`,
+            ),
           );
+          return;
         }
         // CLI usage 미보고 시 글자수/4 추정 폴백
         if (usage.outputTokens === 0) {
@@ -146,44 +125,12 @@ export function createClaudeCliAdapter(
             outputTokens: Math.ceil((finalResult ?? cumulativeText).length / 4),
           };
         }
-        finish();
+        queue.finish();
       });
-
-      const tokenStream: AsyncIterable<string> = {
-        async *[Symbol.asyncIterator]() {
-          try {
-            while (true) {
-              if (queue.length > 0) {
-                yield queue.shift()!;
-                continue;
-              }
-              if (done) {
-                if (error) throw error;
-                return;
-              }
-              const result = await new Promise<IteratorResult<string>>(
-                (resolve) => {
-                  waiters.push(resolve);
-                },
-              );
-              if (result.done) {
-                if (error) throw error;
-                return;
-              }
-              yield result.value;
-            }
-          } finally {
-            input.signal.removeEventListener("abort", onAbort);
-            if (!child.killed && child.exitCode === null) {
-              child.kill("SIGTERM");
-            }
-          }
-        },
-      };
 
       return {
         kind: "speak",
-        stream: tokenStream,
+        stream: queue.stream,
         usage: async () => usage,
       };
     },

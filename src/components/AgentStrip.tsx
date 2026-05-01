@@ -9,21 +9,21 @@ const THEME: Record<
   { bg: string; ring: string; emoji: string; label: string }
 > = {
   claude: {
-    bg: "bg-blue-950/50",
-    ring: "ring-blue-800",
-    emoji: "🟦",
+    bg: "bg-orange-950/50",
+    ring: "ring-orange-800",
+    emoji: "🟠",
     label: "Claude",
   },
   codex: {
     bg: "bg-emerald-950/50",
     ring: "ring-emerald-800",
-    emoji: "🟧",
+    emoji: "🟢",
     label: "Codex",
   },
   gemini: {
-    bg: "bg-purple-950/50",
-    ring: "ring-purple-800",
-    emoji: "🟪",
+    bg: "bg-gradient-to-br from-blue-950/50 to-purple-950/50",
+    ring: "ring-blue-800",
+    emoji: "✨",
     label: "Gemini",
   },
 };
@@ -53,16 +53,23 @@ interface Props {
 
 export function AgentStrip({ view, configs }: Props) {
   if (view.status === "setup") return null;
-  const enabled = configs.filter((c) => c.enabled).map((c) => c.id);
+  const enabled = configs.filter((c) => c.enabled);
   if (enabled.length === 0) return null;
 
   return (
     <div className="flex shrink-0 gap-2 border-b border-zinc-800 bg-zinc-950 px-6 py-3 text-xs">
-      {enabled.map((id) => {
+      {enabled.map((cfg) => {
+        const id = cfg.id;
         const stats = view.agentStats[id];
         const phase = stats?.phase ?? "idle";
         const isActive = view.activeSpeaker === id;
         const t = THEME[id];
+        const modeLabel =
+          cfg.mode === "api"
+            ? "🔑 API"
+            : id === "codex"
+              ? "🖥 CLI · sandbox=read-only"
+              : "🖥 CLI";
         return (
           <div
             key={id}
@@ -75,9 +82,17 @@ export function AgentStrip({ view, configs }: Props) {
               <div className="flex items-center gap-2">
                 <span>{t.emoji}</span>
                 <span className="font-medium text-zinc-200">{t.label}</span>
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500">
+                  {modeLabel}
+                </span>
                 {stats?.lastTurn !== null && stats?.lastTurn !== undefined && (
                   <span className="text-[10px] text-zinc-500">
-                    turn {stats.lastTurn}
+                    라운드 {stats.lastTurn}
+                  </span>
+                )}
+                {stats?.model && (
+                  <span className="text-[10px] text-zinc-600">
+                    · {stats.model}
                   </span>
                 )}
               </div>

@@ -1,5 +1,6 @@
 /* Transcript → Markdown 변환 (Export 버튼). */
 import type { Transcript } from "./transcript";
+import type { OrchestratorEvent } from "./session-store";
 
 const ROLE_LABEL: Record<string, string> = {
   user: "👤 You",
@@ -8,9 +9,16 @@ const ROLE_LABEL: Record<string, string> = {
   gemini: "🟪 Gemini",
 };
 
+const SUMMARIZER_LABEL: Record<string, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  gemini: "Gemini",
+};
+
 export function transcriptToMarkdown(
   transcript: Transcript,
   sessionId: string,
+  eventLog?: OrchestratorEvent[],
 ): string {
   const events = transcript.snapshot();
   const lines: string[] = [
@@ -32,5 +40,26 @@ export function transcriptToMarkdown(
     lines.push(e.text);
     lines.push("");
   }
+
+  // 최종 산출물 — 가장 최근 final_artifact 이벤트 1개를 transcript 뒤에 append.
+  const final = eventLog
+    ?.filter(
+      (ev): ev is Extract<OrchestratorEvent, { type: "final_artifact" }> =>
+        ev.type === "final_artifact",
+    )
+    .slice(-1)[0];
+  if (final) {
+    lines.push("---");
+    lines.push("");
+    lines.push(
+      `# 📦 최종 산출물 — ${SUMMARIZER_LABEL[final.summarizerId] ?? final.summarizerId} 정리`,
+    );
+    lines.push("");
+    lines.push(`_${new Date(final.ts).toISOString()}_`);
+    lines.push("");
+    lines.push(final.text);
+    lines.push("");
+  }
+
   return lines.join("\n");
 }

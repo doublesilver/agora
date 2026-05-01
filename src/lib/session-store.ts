@@ -1,5 +1,6 @@
 /* 세션 상태 저장 + 외부 이벤트 알림. AGENTS.md A6/A7/A8 정합. */
 import type { AgentAdapter, AgentId } from "./agents/types";
+import type { AgentSpec } from "./agent-factory";
 import { Transcript } from "./transcript";
 
 export type SessionStatus = "running" | "idle" | "paused" | "stopped";
@@ -15,7 +16,13 @@ export type OrchestratorEvent =
       userPrompt: string;
       ts: number;
     }
-  | { type: "agent_start"; agentId: AgentId; turn: number; ts: number }
+  | {
+      type: "agent_start";
+      agentId: AgentId;
+      turn: number;
+      ts: number;
+      model?: string;
+    }
   | { type: "token"; agentId: AgentId; turn: number; text: string; ts: number }
   | {
       type: "agent_end";
@@ -59,12 +66,26 @@ export type OrchestratorEvent =
     }
   | {
       type: "session_end";
-      reason:
-        | "user_stop"
-        | "max_turns"
-        | "all_pass"
-        | "budget_exceeded"
-        | "time_exceeded";
+      reason: "user_stop" | "max_turns" | "budget_exceeded" | "time_exceeded";
+      ts: number;
+    }
+  | {
+      type: "summary_update";
+      text: string;
+      atTurn: number;
+      summarizerId: AgentId;
+      ts: number;
+    }
+  | {
+      type: "final_artifact";
+      text: string;
+      summarizerId: AgentId;
+      ts: number;
+    }
+  | {
+      type: "summary_error";
+      stage: "rolling" | "final";
+      message: string;
       ts: number;
     };
 
@@ -86,6 +107,8 @@ export class Notifier {
 export interface SessionState {
   id: string;
   agents: AgentAdapter[];
+  /** 어댑터 생성에 사용된 spec — summarizer가 같은 인증·모드로 단발 호출 시 재사용. */
+  agentSpecs: AgentSpec[];
   systemPrompts: Map<AgentId, string>;
   transcript: Transcript;
   userQueue: { text: string; mode: InterveneMode }[];
@@ -99,8 +122,18 @@ export interface SessionState {
   startedAt: number;
   notifier: Notifier;
   listeners: Set<EventListener>;
+  /** 누적 이벤트 — SSE 신규 구독자에게 replay하여 race로 인한 손실 방지. */
+  eventLog: OrchestratorEvent[];
   /** 종료 후 정리 시 호출. JSONL 로거가 등록. */
   closers: Array<() => void | Promise<void>>;
+  /** 요약 담당 에이전트 id — 미설정 시 요약 비활성. */
+  summarizerId?: AgentId;
+  /** rolling 요약 진행 중 플래그 — 중복 호출 방지. */
+  summarizing: boolean;
+  /** 마지막 rolling 요약 emit 시점 turn — 주기 판정용. */
+  lastSummaryTurn: number;
+  /** 가장 최근 rolling 요약 텍스트 (final 생성 시 입력으로도 사용). */
+  lastSummaryText: string;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -118,6 +151,7 @@ export function deleteSession(id: string): void {
 }
 
 export function emitEvent(state: SessionState, event: OrchestratorEvent): void {
+  state.eventLog.push(event);
   for (const l of state.listeners) {
     try {
       l(event);

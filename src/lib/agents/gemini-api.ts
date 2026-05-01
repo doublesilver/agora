@@ -23,6 +23,7 @@ export function createGeminiApiAdapter(opts: GeminiApiOptions): AgentAdapter {
   return {
     id: "gemini",
     mode: "api",
+    model,
     async speak(input: SpeakInput): Promise<SpeakResult> {
       const system = buildSystemPrompt("gemini", input.systemPrompt);
       const userText = serializeTranscript(input.transcript);

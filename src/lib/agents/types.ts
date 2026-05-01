@@ -34,6 +34,8 @@ export type SpeakResult =
 export interface AgentAdapter {
   id: AgentId;
   mode: AgentMode;
+  /** 사용 모델 라벨 — agent_start 이벤트와 UI에 노출 (CLI는 사용자 설정에 따라 다르므로 옵셔널). */
+  model?: string;
   /** 라운드 1회 발언 결정 + 스트림. PASS면 stream 없음. */
   speak(input: SpeakInput): Promise<SpeakResult>;
 }

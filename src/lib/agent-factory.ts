@@ -9,6 +9,7 @@ import { createGeminiApiAdapter } from "./agents/gemini-api";
 import { createClaudeCliAdapter } from "./agents/claude-cli";
 import { createCodexCliAdapter } from "./agents/codex-cli";
 import { createGeminiCliAdapter } from "./agents/gemini-cli";
+import { warmupCli } from "./agents/cli-stream";
 
 export interface AgentSpec {
   id: AgentId;
@@ -39,12 +40,16 @@ export function createAdapter(spec: AgentSpec): AgentAdapter {
   }
 
   if (spec.mode === "cli") {
+    // 세션 시작 시 백그라운드 워밍업으로 첫 실제 spawn의 cold-start 비용 일부 흡수.
     switch (spec.id) {
       case "claude":
+        warmupCli("claude");
         return createClaudeCliAdapter();
       case "codex":
+        warmupCli("codex");
         return createCodexCliAdapter();
       case "gemini":
+        warmupCli("gemini");
         return createGeminiCliAdapter();
     }
   }

@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const state = getSession(id);
   if (!state) return new Response("not found", { status: 404 });
 
-  const md = transcriptToMarkdown(state.transcript, id);
+  const md = transcriptToMarkdown(state.transcript, id, state.eventLog);
   return new Response(md, {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",

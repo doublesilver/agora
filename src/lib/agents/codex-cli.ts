@@ -1,5 +1,4 @@
 /* Codex CLI 어댑터 — codex exec --json + 사용자 구독/OAuth 인증 사용. */
-import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import type {
   AgentAdapter,
@@ -8,6 +7,11 @@ import type {
   SpeakResult,
 } from "./types";
 import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
+import {
+  createStreamQueue,
+  isTerminationSignal,
+  spawnWithAbort,
+} from "./cli-stream";
 
 interface CodexCliOptions {
   command?: string;
@@ -26,7 +30,7 @@ export function createCodexCliAdapter(
       const transcriptText = serializeTranscript(input.transcript);
       const fullPrompt = `${system}\n\n---\n${transcriptText}`;
 
-      const child = spawn(
+      const handle = spawnWithAbort(
         command,
         [
           "exec",
@@ -37,37 +41,19 @@ export function createCodexCliAdapter(
           "read-only",
           fullPrompt,
         ],
-        { stdio: ["ignore", "pipe", "pipe"] },
+        input.signal,
       );
 
-      const onAbort = () => {
-        if (!child.killed) child.kill("SIGTERM");
-      };
-      input.signal.addEventListener("abort", onAbort, { once: true });
-
       let usage: AgentUsage = { inputTokens: 0, outputTokens: 0 };
-      let stderrTail = "";
-      child.stderr.on("data", (buf: Buffer) => {
-        stderrTail += buf.toString();
-        if (stderrTail.length > 2000) stderrTail = stderrTail.slice(-2000);
+
+      const queue = createStreamQueue(() => {
+        handle.detachAbort();
+        if (!handle.child.killed && handle.child.exitCode === null) {
+          handle.child.kill("SIGTERM");
+        }
       });
 
-      const queue: string[] = [];
-      const waiters: Array<(v: IteratorResult<string>) => void> = [];
-      let done = false;
-      let error: unknown = null;
-
-      const push = (chunk: string) => {
-        if (waiters.length > 0) waiters.shift()!({ value: chunk, done: false });
-        else queue.push(chunk);
-      };
-      const finish = () => {
-        done = true;
-        while (waiters.length > 0)
-          waiters.shift()!({ value: "" as string, done: true });
-      };
-
-      const rl = createInterface({ input: child.stdout });
+      const rl = createInterface({ input: handle.child.stdout! });
       rl.on("line", (line) => {
         if (!line.trim()) return;
         try {
@@ -77,7 +63,7 @@ export function createCodexCliAdapter(
             ev?.item?.type === "agent_message"
           ) {
             const text = typeof ev.item.text === "string" ? ev.item.text : "";
-            if (text) push(text);
+            if (text) queue.push(text);
           } else if (ev?.type === "turn.completed" && ev?.usage) {
             usage = {
               inputTokens: ev.usage.input_tokens ?? 0,
@@ -89,65 +75,35 @@ export function createCodexCliAdapter(
               ev?.message ??
               ev?.error?.message ??
               "codex CLI returned error event";
-            error = new Error(`codex: ${msg}`);
+            queue.finish(new Error(`codex: ${msg}`));
           }
         } catch {
           // 비-JSON 라인 무시.
         }
       });
 
-      child.on("error", (err) => {
-        error = err;
-        finish();
-      });
-      child.on("exit", (code, signal) => {
+      handle.child.on("error", (err) => queue.finish(err));
+      handle.child.on("exit", (code, sig) => {
         const aborted = input.signal.aborted;
-        const sigterm = signal === "SIGTERM" || code === 143 || code === 130;
-        if (aborted || sigterm) {
-          finish();
+        const terminated = isTerminationSignal(code, sig);
+        if (aborted || terminated) {
+          queue.finish();
           return;
         }
-        if (code !== 0 && !error) {
-          error = new Error(
-            `codex CLI exited code=${code} signal=${signal} stderr=${stderrTail.slice(-200)}`,
+        if (code !== 0) {
+          queue.finish(
+            new Error(
+              `codex CLI exited code=${code} signal=${sig} stderr=${handle.getStderrTail().slice(-200)}`,
+            ),
           );
+          return;
         }
-        finish();
+        queue.finish();
       });
-
-      const tokenStream: AsyncIterable<string> = {
-        async *[Symbol.asyncIterator]() {
-          try {
-            while (true) {
-              if (queue.length > 0) {
-                yield queue.shift()!;
-                continue;
-              }
-              if (done) {
-                if (error) throw error;
-                return;
-              }
-              const result = await new Promise<IteratorResult<string>>(
-                (resolve) => {
-                  waiters.push(resolve);
-                },
-              );
-              if (result.done) {
-                if (error) throw error;
-                return;
-              }
-              yield result.value;
-            }
-          } finally {
-            input.signal.removeEventListener("abort", onAbort);
-            if (!child.killed && child.exitCode === null) child.kill("SIGTERM");
-          }
-        },
-      };
 
       return {
         kind: "speak",
-        stream: tokenStream,
+        stream: queue.stream,
         usage: async () => usage,
       };
     },

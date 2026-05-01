@@ -1,5 +1,4 @@
 /* Gemini CLI 어댑터 — gemini -p ... -y -o json. JSON 단일 응답 파싱. */
-import { spawn } from "node:child_process";
 import type {
   AgentAdapter,
   AgentUsage,
@@ -7,6 +6,11 @@ import type {
   SpeakResult,
 } from "./types";
 import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
+import {
+  createStreamQueue,
+  isTerminationSignal,
+  spawnWithAbort,
+} from "./cli-stream";
 
 interface GeminiCliOptions {
   command?: string;
@@ -29,126 +33,78 @@ export function createGeminiCliAdapter(
       const transcriptText = serializeTranscript(input.transcript);
       const fullPrompt = `${system}\n\n---\n${transcriptText}`;
 
-      const child = spawn(
+      const handle = spawnWithAbort(
         command,
         ["-p", fullPrompt, "-y", "-o", "json", "-m", model],
-        { stdio: ["ignore", "pipe", "pipe"] },
+        input.signal,
       );
 
-      const onAbort = () => {
-        if (!child.killed) child.kill("SIGTERM");
-      };
-      input.signal.addEventListener("abort", onAbort, { once: true });
-
       let stdoutBuf = "";
-      let stderrTail = "";
-      child.stdout.on("data", (buf: Buffer) => {
-        stdoutBuf += buf.toString();
-      });
-      child.stderr.on("data", (buf: Buffer) => {
-        stderrTail += buf.toString();
-        if (stderrTail.length > 2000) stderrTail = stderrTail.slice(-2000);
-      });
-
-      const queue: string[] = [];
-      const waiters: Array<(v: IteratorResult<string>) => void> = [];
-      let done = false;
-      let error: unknown = null;
       let usage: AgentUsage = { inputTokens: 0, outputTokens: 0 };
 
-      const push = (chunk: string) => {
-        if (waiters.length > 0) waiters.shift()!({ value: chunk, done: false });
-        else queue.push(chunk);
-      };
-      const finish = () => {
-        done = true;
-        while (waiters.length > 0)
-          waiters.shift()!({ value: "" as string, done: true });
-      };
-
-      child.on("error", (err) => {
-        error = err;
-        finish();
+      const queue = createStreamQueue(() => {
+        handle.detachAbort();
+        if (!handle.child.killed && handle.child.exitCode === null) {
+          handle.child.kill("SIGTERM");
+        }
       });
+
+      handle.child.stdout?.on("data", (buf: Buffer) => {
+        stdoutBuf += buf.toString();
+      });
+
+      handle.child.on("error", (err) => queue.finish(err));
       // 'close'는 모든 stdio 스트림이 닫힌 후 발생 — stdoutBuf 완결 보장.
-      child.on("close", (code, signal) => {
+      handle.child.on("close", (code, sig) => {
         const aborted = input.signal.aborted;
-        const sigterm = signal === "SIGTERM" || code === 143 || code === 130;
-        if (aborted || sigterm) {
-          finish();
+        const terminated = isTerminationSignal(code, sig);
+        if (aborted || terminated) {
+          queue.finish();
           return;
         }
-        if (code !== 0 && !error) {
-          error = new Error(
-            `gemini CLI exited code=${code} signal=${signal} stderr=${stderrTail.slice(-300)}`,
+        if (code !== 0) {
+          queue.finish(
+            new Error(
+              `gemini CLI exited code=${code} signal=${sig} stderr=${handle.getStderrTail().slice(-300)}`,
+            ),
           );
-          finish();
           return;
         }
         // stdout 안에 JSON 객체 추출 (앞뒤 잡문자 무시).
         const start = stdoutBuf.indexOf("{");
         const end = stdoutBuf.lastIndexOf("}");
         if (start < 0 || end < 0 || end <= start) {
-          error = new Error(
-            `gemini CLI: JSON 응답 파싱 실패. raw="${stdoutBuf.slice(0, 200)}" stderr="${stderrTail.slice(-200)}"`,
+          queue.finish(
+            new Error(
+              `gemini CLI: JSON 응답 파싱 실패. raw="${stdoutBuf.slice(0, 200)}" stderr="${handle.getStderrTail().slice(-200)}"`,
+            ),
           );
-          finish();
           return;
         }
         try {
           const parsed = JSON.parse(stdoutBuf.slice(start, end + 1));
           const text =
             typeof parsed.response === "string" ? parsed.response : "";
-          if (text) push(text);
+          if (text) queue.push(text);
           // usage는 stats.models[*].tokens 합산
           const models = parsed?.stats?.models ?? {};
-          let input = 0;
-          let output = 0;
+          let inputTokens = 0;
+          let outputTokens = 0;
           for (const k of Object.keys(models)) {
             const t = models[k]?.tokens ?? {};
-            input += t.prompt ?? 0;
-            output += t.candidates ?? 0;
+            inputTokens += t.prompt ?? 0;
+            outputTokens += t.candidates ?? 0;
           }
-          usage = { inputTokens: input, outputTokens: output };
+          usage = { inputTokens, outputTokens };
+          queue.finish();
         } catch (e) {
-          error = e;
+          queue.finish(e);
         }
-        finish();
       });
-
-      const tokenStream: AsyncIterable<string> = {
-        async *[Symbol.asyncIterator]() {
-          try {
-            while (true) {
-              if (queue.length > 0) {
-                yield queue.shift()!;
-                continue;
-              }
-              if (done) {
-                if (error) throw error;
-                return;
-              }
-              const result = await new Promise<IteratorResult<string>>(
-                (resolve) => {
-                  waiters.push(resolve);
-                },
-              );
-              if (result.done) {
-                if (error) throw error;
-                return;
-              }
-              yield result.value;
-            }
-          } finally {
-            input.signal.removeEventListener("abort", onAbort);
-            if (!child.killed && child.exitCode === null) child.kill("SIGTERM");
-          }
-        },
-      };
 
       return {
         kind: "speak",
-        stream: tokenStream,
+        stream: queue.stream,
         usage: async () => usage,
       };
     },

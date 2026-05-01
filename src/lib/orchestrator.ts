@@ -1,14 +1,8 @@
-/* 오케스트레이터 — AGENTS.md A3/A6/A7/A8 직렬 라운드 알고리즘. */
-import type {
-  AgentAdapter,
-  AgentId,
-  SpeakInput,
-  SpeakResult,
-} from "./agents/types";
-import { PASS_INSTRUCTION, PASS_TOKEN } from "./agents/types";
+/* 오케스트레이터 entry — AGENTS.md A3/A6/A7/A8 직렬 라운드 알고리즘. */
+import type { AgentAdapter, AgentId } from "./agents/types";
+import type { AgentSpec } from "./agent-factory";
 import { resolveSystemPrompt } from "./agents/role-seeds";
 import {
-  AGENT_FIRST_TOKEN_TIMEOUT_MS,
   MAX_CONSECUTIVE_PASS,
   MAX_SESSION_DURATION_MS,
   MAX_SESSION_TOKENS,
@@ -17,19 +11,25 @@ import {
 import {
   Notifier,
   type SessionState,
-  anySignal,
   emitEvent,
   type InterveneMode,
 } from "./session-store";
 import { Transcript } from "./transcript";
+import { runRound } from "./orchestrator-round";
+import { runFinalArtifact, runRollingSummary } from "./summarizer";
 
 const now = (): number => Date.now();
+
+/** rolling 요약 주기 — 매 N 라운드마다. 인터럽트 직후에는 별개로 즉시 호출. */
+const ROLLING_SUMMARY_EVERY = 2;
 
 interface CreateSessionOptions {
   id: string;
   agents: AgentAdapter[];
+  agentSpecs: AgentSpec[];
   systemPrompts: Partial<Record<AgentId, string>>;
   userPrompt: string;
+  summarizerId?: AgentId;
 }
 
 export function createSessionState(opts: CreateSessionOptions): SessionState {
@@ -47,6 +47,7 @@ export function createSessionState(opts: CreateSessionOptions): SessionState {
   return {
     id: opts.id,
     agents: opts.agents,
+    agentSpecs: opts.agentSpecs,
     systemPrompts,
     transcript,
     userQueue: [],
@@ -59,11 +60,16 @@ export function createSessionState(opts: CreateSessionOptions): SessionState {
     startedAt: now(),
     notifier: new Notifier(),
     listeners: new Set(),
+    eventLog: [],
     closers: [],
+    summarizerId: opts.summarizerId,
+    summarizing: false,
+    lastSummaryTurn: -1,
+    lastSummaryText: "",
   };
 }
 
-/** 외부 트리거. */
+/** 외부 트리거 — 인터럽트는 roundAbort fire, queue는 다음 라운드 반영. */
 export function intervene(
   state: SessionState,
   text: string,
@@ -72,8 +78,25 @@ export function intervene(
   state.userQueue.push({ text, mode });
   if (mode === "interrupt") {
     state.roundAbort.abort("interrupt");
+    // 인터럽트는 맥락이 한 번 꺾이는 지점이라 즉시 요약을 갱신해 사용자가
+    // "지금까지 무슨 얘기 했는지" 빠르게 잡고 다음 발화를 정할 수 있게 한다.
+    triggerRollingSummary(state, true);
   }
   state.notifier.notify();
+}
+
+/** 라운드 사이 fire-and-forget 요약 호출 — summarizing 가드로 직렬화. */
+function triggerRollingSummary(state: SessionState, force: boolean): void {
+  if (!state.summarizerId) return;
+  if (state.summarizing) return;
+  if (!force && state.turn - state.lastSummaryTurn < ROLLING_SUMMARY_EVERY) {
+    return;
+  }
+  state.summarizing = true;
+  state.lastSummaryTurn = state.turn;
+  void runRollingSummary(state).finally(() => {
+    state.summarizing = false;
+  });
 }
 
 export function pause(state: SessionState): void {
@@ -112,51 +135,82 @@ export function setSystemPrompt(
   });
 }
 
-function isAbortError(err: unknown): boolean {
-  return (
-    err instanceof Error &&
-    (err.name === "AbortError" || /aborted/i.test(err.message ?? ""))
-  );
+type SessionEndReason =
+  | "user_stop"
+  | "max_turns"
+  | "budget_exceeded"
+  | "time_exceeded";
+
+/** 매 라운드 시작 전 가드. 종료 사유 반환 시 세션 종료. */
+function checkSessionGate(state: SessionState): SessionEndReason | null {
+  if (state.sessionAbort.signal.aborted) return "user_stop";
+  if (state.turn >= MAX_TURNS) return "max_turns";
+  if (state.sessionTokens >= MAX_SESSION_TOKENS) return "budget_exceeded";
+  if (now() - state.startedAt >= MAX_SESSION_DURATION_MS)
+    return "time_exceeded";
+  return null;
 }
 
-function rotate<T>(arr: T[], shift: number): T[] {
-  if (arr.length === 0) return [];
-  const k = ((shift % arr.length) + arr.length) % arr.length;
-  return [...arr.slice(k), ...arr.slice(0, k)];
-}
-
-type GuardedSpeak =
-  | { kind: "pass" }
-  | {
-      kind: "speak";
-      stream: AsyncIterable<string>;
-      usage?: () => Promise<{ inputTokens: number; outputTokens: number }>;
-    }
-  | { kind: "timeout" }
-  | { kind: "error"; message: string };
-
-async function callSpeakerGuarded(
-  speaker: AgentAdapter,
-  input: SpeakInput,
-  timeoutMs: number,
-): Promise<GuardedSpeak> {
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<GuardedSpeak>((resolve) => {
-    timeoutHandle = setTimeout(() => {
-      resolve({ kind: "timeout" });
-    }, timeoutMs);
-  });
-  try {
-    const result = await Promise.race<SpeakResult | GuardedSpeak>([
-      speaker.speak(input),
-      timeoutPromise,
+/** paused 상태 유지 시 깨어날 때까지 대기. true 반환 시 세션 abort 발생. */
+async function waitWhilePaused(state: SessionState): Promise<boolean> {
+  while (state.status === "paused") {
+    await Promise.race([
+      state.notifier.wait(),
+      abortPromise(state.sessionAbort.signal),
     ]);
-    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
-    return result as GuardedSpeak;
-  } catch (err) {
-    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
-    return { kind: "error", message: (err as Error)?.message ?? String(err) };
+    if (state.sessionAbort.signal.aborted) return true;
   }
+  return false;
+}
+
+function drainUserQueue(state: SessionState): void {
+  while (state.userQueue.length > 0) {
+    const msg = state.userQueue.shift()!;
+    state.transcript.push({ role: "user", text: msg.text, ts: now() });
+    emitEvent(state, {
+      type: "user_message",
+      text: msg.text,
+      mode: msg.mode,
+      ts: now(),
+    });
+  }
+}
+
+/** consecutivePass 누적 + idle 진입 조건 충족 시 사용자 입력 대기. true 반환 시 세션 abort. */
+async function maybeEnterIdle(
+  state: SessionState,
+  anySpeak: boolean,
+): Promise<boolean> {
+  state.consecutivePass = anySpeak ? 0 : state.consecutivePass + 1;
+
+  if (
+    state.consecutivePass < MAX_CONSECUTIVE_PASS ||
+    state.userQueue.length > 0 ||
+    state.roundAbort.signal.aborted ||
+    state.sessionAbort.signal.aborted
+  ) {
+    return false;
+  }
+
+  state.status = "idle";
+  emitEvent(state, { type: "status", value: "idle", ts: now() });
+  while (
+    state.status === "idle" &&
+    state.userQueue.length === 0 &&
+    !state.sessionAbort.signal.aborted
+  ) {
+    await Promise.race([
+      state.notifier.wait(),
+      abortPromise(state.sessionAbort.signal),
+    ]);
+  }
+  state.consecutivePass = 0;
+  if (state.sessionAbort.signal.aborted) return true;
+  if (state.status === "idle") {
+    state.status = "running";
+    emitEvent(state, { type: "status", value: "running", ts: now() });
+  }
+  return false;
 }
 
 export async function runSession(state: SessionState): Promise<void> {
@@ -173,281 +227,52 @@ export async function runSession(state: SessionState): Promise<void> {
   });
   emitEvent(state, { type: "status", value: "running", ts: now() });
 
-  outer: while (true) {
-    if (state.sessionAbort.signal.aborted) {
-      emitEvent(state, { type: "session_end", reason: "user_stop", ts: now() });
-      break;
-    }
-    if (state.turn >= MAX_TURNS) {
-      emitEvent(state, { type: "session_end", reason: "max_turns", ts: now() });
-      break;
-    }
-    if (state.sessionTokens >= MAX_SESSION_TOKENS) {
-      emitEvent(state, {
-        type: "session_end",
-        reason: "budget_exceeded",
-        ts: now(),
-      });
-      break;
-    }
-    if (now() - state.startedAt >= MAX_SESSION_DURATION_MS) {
-      emitEvent(state, {
-        type: "session_end",
-        reason: "time_exceeded",
-        ts: now(),
-      });
+  // session_end는 한 번만 emit. paused/idle 중 STOP 경로에서 중복 가능성 방지.
+  let ended = false;
+  const endOnce = (reason: SessionEndReason): void => {
+    if (ended) return;
+    ended = true;
+    emitEvent(state, { type: "session_end", reason, ts: now() });
+  };
+
+  let endReason: SessionEndReason | null = null;
+
+  while (true) {
+    const reason = checkSessionGate(state);
+    if (reason) {
+      endReason = reason;
       break;
     }
 
-    while (state.status === "paused") {
-      await Promise.race([
-        state.notifier.wait(),
-        abortPromise(state.sessionAbort.signal),
-      ]);
-      if (state.sessionAbort.signal.aborted) break outer;
+    if (await waitWhilePaused(state)) {
+      endReason = "user_stop";
+      break;
     }
 
-    while (state.userQueue.length > 0) {
-      const msg = state.userQueue.shift()!;
-      state.transcript.push({ role: "user", text: msg.text, ts: now() });
-      emitEvent(state, {
-        type: "user_message",
-        text: msg.text,
-        mode: msg.mode,
-        ts: now(),
-      });
-    }
+    drainUserQueue(state);
 
-    state.roundAbort = new AbortController();
-    const speakerOrder = rotate(state.agents, state.turn);
-    let anySpeak = false;
+    const anySpeak = await runRound(state);
 
-    for (const speaker of speakerOrder) {
-      if (state.sessionAbort.signal.aborted) break;
-      if (state.roundAbort.signal.aborted) break;
+    if (anySpeak) triggerRollingSummary(state, false);
 
-      const signal = anySignal([
-        state.roundAbort.signal,
-        state.sessionAbort.signal,
-      ]);
-      const baseSystem = state.systemPrompts.get(speaker.id) ?? "";
-      const systemPrompt = `${baseSystem}\n\n${PASS_INSTRUCTION}`;
-      const input: SpeakInput = {
-        transcript: state.transcript.snapshot(),
-        systemPrompt,
-        signal,
-      };
-
-      const result = await callSpeakerGuarded(
-        speaker,
-        input,
-        AGENT_FIRST_TOKEN_TIMEOUT_MS,
-      );
-
-      if (result.kind === "pass") {
-        emitEvent(state, {
-          type: "agent_pass",
-          agentId: speaker.id,
-          turn: state.turn,
-          ts: now(),
-        });
-        continue;
-      }
-      if (result.kind === "timeout") {
-        emitEvent(state, {
-          type: "agent_timeout",
-          agentId: speaker.id,
-          turn: state.turn,
-          timeoutMs: AGENT_FIRST_TOKEN_TIMEOUT_MS,
-          ts: now(),
-        });
-        continue;
-      }
-      if (result.kind === "error") {
-        emitEvent(state, {
-          type: "agent_error",
-          agentId: speaker.id,
-          turn: state.turn,
-          message: result.message.slice(0, 500),
-          ts: now(),
-        });
-        continue;
-      }
-
-      // speak
-      emitEvent(state, {
-        type: "agent_start",
-        agentId: speaker.id,
-        turn: state.turn,
-        ts: now(),
-      });
-      let fullText = "";
-      let firstTokenSeen = false;
-      const iter = result.stream[Symbol.asyncIterator]();
-      try {
-        // 첫 토큰 도착 전까지 AGENT_FIRST_TOKEN_TIMEOUT_MS 캡. 늦으면 round abort + timeout.
-        const firstChunkRace = await Promise.race<{
-          kind: "first" | "done" | "timeout";
-          value?: string;
-        }>([
-          (async () => {
-            const r = await iter.next();
-            if (r.done) return { kind: "done" as const };
-            return { kind: "first" as const, value: r.value };
-          })(),
-          new Promise((resolve) =>
-            setTimeout(
-              () => resolve({ kind: "timeout" as const }),
-              AGENT_FIRST_TOKEN_TIMEOUT_MS,
-            ),
-          ),
-        ]);
-
-        if (firstChunkRace.kind === "timeout") {
-          // 발화자 강제 중단 + 이번 라운드의 이 발화자만 timeout 처리.
-          state.roundAbort.abort("first-token-timeout");
-          emitEvent(state, {
-            type: "agent_timeout",
-            agentId: speaker.id,
-            turn: state.turn,
-            timeoutMs: AGENT_FIRST_TOKEN_TIMEOUT_MS,
-            ts: now(),
-          });
-          // 빈 agent_end로 streaming bubble 정리 → UI가 timeout 메시지로 마킹.
-          emitEvent(state, {
-            type: "agent_end",
-            agentId: speaker.id,
-            turn: state.turn,
-            fullText: "",
-            interrupted: true,
-            ts: now(),
-          });
-          continue;
-        }
-
-        if (firstChunkRace.kind === "first" && firstChunkRace.value) {
-          firstTokenSeen = true;
-          fullText += firstChunkRace.value;
-          emitEvent(state, {
-            type: "token",
-            agentId: speaker.id,
-            turn: state.turn,
-            text: firstChunkRace.value,
-            ts: now(),
-          });
-        }
-
-        while (true) {
-          if (state.sessionAbort.signal.aborted) break;
-          if (now() - state.startedAt >= MAX_SESSION_DURATION_MS) {
-            state.sessionAbort.abort("time");
-            break;
-          }
-          const r = await iter.next();
-          if (r.done) break;
-          fullText += r.value;
-          emitEvent(state, {
-            type: "token",
-            agentId: speaker.id,
-            turn: state.turn,
-            text: r.value,
-            ts: now(),
-          });
-        }
-      } catch (err) {
-        if (!isAbortError(err)) {
-          emitEvent(state, {
-            type: "agent_error",
-            agentId: speaker.id,
-            turn: state.turn,
-            message: (err as Error)?.message ?? String(err),
-            ts: now(),
-          });
-        }
-      }
-      const interrupted =
-        state.roundAbort.signal.aborted || state.sessionAbort.signal.aborted;
-
-      // 응답 trim 후 정확히 PASS면 발언 아닌 PASS로 처리
-      if (fullText.trim() === PASS_TOKEN) {
-        emitEvent(state, {
-          type: "agent_pass",
-          agentId: speaker.id,
-          turn: state.turn,
-          ts: now(),
-        });
-      } else {
-        anySpeak = true;
-        emitEvent(state, {
-          type: "agent_end",
-          agentId: speaker.id,
-          turn: state.turn,
-          fullText,
-          interrupted,
-          ts: now(),
-        });
-        if (fullText.length > 0) {
-          state.transcript.push({
-            role: speaker.id,
-            text: fullText,
-            ts: now(),
-            turn: state.turn,
-          });
-        }
-      }
-
-      if (result.usage) {
-        try {
-          const u = await result.usage();
-          state.sessionTokens += u.inputTokens + u.outputTokens;
-          emitEvent(state, {
-            type: "usage",
-            agentId: speaker.id,
-            turn: state.turn,
-            inputTokens: u.inputTokens,
-            outputTokens: u.outputTokens,
-            sessionTotal: state.sessionTokens,
-            ts: now(),
-          });
-          if (state.sessionTokens >= MAX_SESSION_TOKENS) {
-            // 다음 라운드 가드에서 budget_exceeded 처리되도록 break.
-            break;
-          }
-        } catch {
-          // usage 실패는 비치명.
-        }
-      }
-    }
-
-    state.consecutivePass = anySpeak ? 0 : state.consecutivePass + 1;
-
-    if (
-      state.consecutivePass >= MAX_CONSECUTIVE_PASS &&
-      state.userQueue.length === 0 &&
-      !state.roundAbort.signal.aborted &&
-      !state.sessionAbort.signal.aborted
-    ) {
-      state.status = "idle";
-      emitEvent(state, { type: "status", value: "idle", ts: now() });
-      while (
-        state.status === "idle" &&
-        state.userQueue.length === 0 &&
-        !state.sessionAbort.signal.aborted
-      ) {
-        await Promise.race([
-          state.notifier.wait(),
-          abortPromise(state.sessionAbort.signal),
-        ]);
-      }
-      state.consecutivePass = 0;
-      if (state.status === "idle") {
-        state.status = "running";
-        emitEvent(state, { type: "status", value: "running", ts: now() });
-      }
+    if (await maybeEnterIdle(state, anySpeak)) {
+      endReason = "user_stop";
+      break;
     }
 
     state.turn += 1;
   }
+
+  // 종료 사유 emit 직전에 final 산출물 생성 — UI가 stopped 상태로 들어가기 전에
+  // 마지막 결과 카드가 final_artifact 이벤트를 통해 도착하도록.
+  if (state.summarizerId) {
+    try {
+      await runFinalArtifact(state);
+    } catch (err) {
+      console.error("[session] final artifact error:", err);
+    }
+  }
+  if (endReason) endOnce(endReason);
 
   state.status = "stopped";
   emitEvent(state, { type: "status", value: "stopped", ts: now() });

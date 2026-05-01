@@ -23,6 +23,7 @@ export function createGptApiAdapter(opts: GptApiOptions): AgentAdapter {
   return {
     id: "codex",
     mode: "api",
+    model,
     async speak(input: SpeakInput): Promise<SpeakResult> {
       const system = buildSystemPrompt("codex", input.systemPrompt);
       const userText = serializeTranscript(input.transcript);

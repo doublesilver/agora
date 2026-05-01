@@ -35,8 +35,27 @@ export async function GET(req: Request) {
         }
       };
 
-      // 신규 구독자에게 status snapshot.
-      send({ type: "status", value: state.status, ts: Date.now() });
+      // 누적 이벤트 replay — POST→listener 등록 사이의 race window에서 발생한 이벤트
+      // (session_start, agent_start 등) 손실 방지.
+      let alreadyEnded = false;
+      for (const ev of state.eventLog) {
+        send(ev);
+        if (ev.type === "session_end") alreadyEnded = true;
+      }
+      if (state.eventLog.length === 0) {
+        // 아직 첫 이벤트도 없을 때 status snapshot 한 번.
+        send({ type: "status", value: state.status, ts: Date.now() });
+      }
+      if (alreadyEnded) {
+        setTimeout(() => {
+          try {
+            controller.close();
+          } catch {
+            /* noop */
+          }
+        }, 100);
+        return;
+      }
 
       const listener = (e: OrchestratorEvent) => {
         send(e);
