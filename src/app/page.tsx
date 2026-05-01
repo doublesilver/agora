@@ -35,7 +35,7 @@ const initialConfigs: AgentConfig[] = [
   },
   {
     id: "gemini",
-    enabled: false,
+    enabled: true,
     mode: "api",
     apiKey: "",
     systemPrompt: ROLE_SEEDS.gemini,
