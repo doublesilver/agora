@@ -71,15 +71,22 @@ const FONT_SIZE_PX: Record<FontSize, string> = {
 interface Appearance {
   fontSize: FontSize;
   density: Density;
+  showInput: boolean;
 }
+
+const APPEARANCE_DEFAULT: Appearance = {
+  fontSize: "M",
+  density: "cozy",
+  showInput: true,
+};
 
 const APPEARANCE_KEY = "agora.appearance.v1";
 
 function readAppearance(): Appearance {
-  if (typeof window === "undefined") return { fontSize: "M", density: "cozy" };
+  if (typeof window === "undefined") return APPEARANCE_DEFAULT;
   try {
     const raw = window.localStorage.getItem(APPEARANCE_KEY);
-    if (!raw) return { fontSize: "M", density: "cozy" };
+    if (!raw) return APPEARANCE_DEFAULT;
     const parsed = JSON.parse(raw) as Partial<Appearance>;
     return {
       fontSize:
@@ -87,9 +94,10 @@ function readAppearance(): Appearance {
           ? parsed.fontSize
           : "M",
       density: parsed.density === "compact" ? "compact" : "cozy",
+      showInput: parsed.showInput !== false,
     };
   } catch {
-    return { fontSize: "M", density: "cozy" };
+    return APPEARANCE_DEFAULT;
   }
 }
 
@@ -112,10 +120,7 @@ function applyAppearance(value: Appearance): void {
 }
 
 export function useAppearance(): [Appearance, (next: Appearance) => void] {
-  const [value, setValue] = useState<Appearance>({
-    fontSize: "M",
-    density: "cozy",
-  });
+  const [value, setValue] = useState<Appearance>(APPEARANCE_DEFAULT);
   useEffect(() => {
     const v = readAppearance();
     setValue(v);
@@ -216,7 +221,6 @@ export function useLimits(): [UserLimits, (next: UserLimits) => void] {
 
 type CategoryId =
   | "agents"
-  | "summarizer"
   | "reference"
   | "appearance"
   | "backup"
@@ -224,12 +228,11 @@ type CategoryId =
   | "about";
 
 const CATEGORIES: { id: CategoryId; label: string; hint: string }[] = [
-  { id: "agents", label: "AI 에이전트", hint: "활성·인증·역할" },
-  { id: "summarizer", label: "결과 정리 담당", hint: "종료 시 산출물" },
+  { id: "agents", label: "AI 에이전트", hint: "활성·인증·역할·결과 정리" },
   { id: "reference", label: "참고 문서", hint: "공통 시스템 프롬프트" },
-  { id: "appearance", label: "외관", hint: "폰트·밀도" },
+  { id: "appearance", label: "외관", hint: "폰트·밀도·발화창" },
   { id: "backup", label: "설정 백업", hint: "내보내기·가져오기" },
-  { id: "limits", label: "토론 한도", hint: "캡 정보 (read-only)" },
+  { id: "limits", label: "토론 한도", hint: "턴·토큰·시간" },
   { id: "about", label: "정보", hint: "버전·포지셔닝" },
 ];
 
@@ -425,19 +428,12 @@ export function SettingsModal({
                 cliLoading={cliLoading}
                 isSetup={isSetup}
                 isRunning={isRunning}
+                summarizerId={summarizerId}
+                setSummarizerId={setSummarizerId}
                 onPatch={patch}
                 onCheckApiKey={checkApiKey}
                 onRefreshCli={refreshCliStatus}
                 onSetSystemPrompt={onSetSystemPrompt}
-              />
-            )}
-            {active === "summarizer" && (
-              <SummarizerPane
-                configs={configs}
-                authStates={authStates}
-                cliStatus={cliStatus}
-                summarizerId={summarizerId}
-                setSummarizerId={setSummarizerId}
               />
             )}
             {active === "reference" && (
@@ -479,6 +475,8 @@ function AgentsPane({
   cliLoading,
   isSetup,
   isRunning,
+  summarizerId,
+  setSummarizerId,
   onPatch,
   onCheckApiKey,
   onRefreshCli,
@@ -490,6 +488,8 @@ function AgentsPane({
   cliLoading: boolean;
   isSetup: boolean;
   isRunning: boolean;
+  summarizerId: AgentId | null;
+  setSummarizerId: (next: AgentId | null) => void;
   onPatch: (id: AgentId, partial: Partial<AgentConfig>) => void;
   onCheckApiKey: (id: AgentId, apiKey: string) => void;
   onRefreshCli: () => void;
@@ -590,6 +590,19 @@ function AgentsPane({
           </details>
         </div>
       ))}
+
+      <div className="mt-2 flex flex-col gap-3 rounded-md border border-zinc-800 bg-zinc-900/30 p-4">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          📝 결과 정리 담당
+        </h3>
+        <SummarizerPane
+          configs={configs}
+          authStates={authStates}
+          cliStatus={cliStatus}
+          summarizerId={summarizerId}
+          setSummarizerId={setSummarizerId}
+        />
+      </div>
     </section>
   );
 }
@@ -951,6 +964,42 @@ function AppearancePane({
         <p className="text-[10px] text-zinc-600">
           채팅 메시지 사이 여백. compact가 더 많은 라운드를 한 화면에
           보여줍니다.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          하단 발화 입력창
+        </h3>
+        <div className="flex gap-1.5">
+          {(
+            [
+              { id: true, label: "활성", hint: "기본 — 항상 표시" },
+              { id: false, label: "비활성", hint: "숨김 — 인터럽트 불가" },
+            ] as { id: boolean; label: string; hint: string }[]
+          ).map((d) => {
+            const selected = value.showInput === d.id;
+            return (
+              <button
+                key={String(d.id)}
+                type="button"
+                onClick={() => onChange({ ...value, showInput: d.id })}
+                aria-pressed={selected}
+                className={`flex flex-col items-start gap-0.5 rounded-md px-3 py-2 ring-1 transition-colors ${
+                  selected
+                    ? "bg-zinc-800 text-zinc-100 ring-zinc-600"
+                    : "bg-zinc-900 text-zinc-400 ring-zinc-800 hover:bg-zinc-900/80"
+                }`}
+              >
+                <span className="font-medium">{d.label}</span>
+                <span className="text-[10px] text-zinc-500">{d.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-zinc-600">
+          비활성 시 채팅 화면이 더 넓어집니다. 인터럽트가 필요하면 다시
+          활성화하거나 좌측 컨트롤로 종료/일시정지.
         </p>
       </div>
     </section>

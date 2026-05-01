@@ -128,13 +128,25 @@ export default function Home() {
         <HeaderBar view={view} />
         <AgentStrip view={view} configs={configs} />
         <ChatView view={view} density={appearance.density} />
-        <InterventionInput
-          view={view}
-          onSend={actions.intervene}
-          onPause={actions.pause}
-          onResume={actions.resume}
-          onStop={actions.stop}
-        />
+        {appearance.showInput ? (
+          <InterventionInput
+            view={view}
+            onSend={actions.intervene}
+            onPause={actions.pause}
+            onResume={actions.resume}
+            onStop={actions.stop}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAppearance({ ...appearance, showInput: true })}
+            className="flex shrink-0 items-center justify-center gap-2 border-t border-zinc-800/80 bg-zinc-950 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-200"
+            title="발화 입력창 다시 활성화"
+          >
+            <span>⌃</span>
+            <span>입력창 펼치기</span>
+          </button>
+        )}
       </main>
       <ActivityLog view={view} />
       <SettingsModal
