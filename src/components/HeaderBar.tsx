@@ -87,9 +87,17 @@ export function HeaderBar({ view }: Props) {
           ))}
         </div>
       )}
-      <div className="ml-2 flex flex-1 items-center gap-2 text-xs text-zinc-400">
+      <div className="ml-2 flex flex-1 items-center gap-2 text-xs text-zinc-300">
         <span className="whitespace-nowrap">tokens</span>
-        <div className="h-1.5 w-40 overflow-hidden rounded bg-zinc-800">
+        <div
+          role="progressbar"
+          aria-label="세션 토큰 사용량"
+          aria-valuenow={view.sessionTokens}
+          aria-valuemin={0}
+          aria-valuemax={MAX_SESSION_TOKENS}
+          aria-valuetext={`${view.sessionTokens.toLocaleString()} / ${MAX_SESSION_TOKENS.toLocaleString()} (${pct}%)`}
+          className="h-1.5 w-40 overflow-hidden rounded bg-zinc-800"
+        >
           <div
             className={`h-full ${pct >= 90 ? "bg-red-500" : "bg-blue-500"}`}
             style={{ width: `${pct}%` }}
@@ -132,9 +140,17 @@ function ElapsedTimer({ startTs }: { startTs: number }) {
     .padStart(2, "0");
   const totalMm = Math.floor(MAX_SESSION_DURATION_MS / 60000);
   return (
-    <div className="flex items-center gap-2 text-xs text-zinc-400">
-      <span>⏱</span>
-      <div className="h-1.5 w-20 overflow-hidden rounded bg-zinc-800">
+    <div className="flex items-center gap-2 text-xs text-zinc-300">
+      <span aria-hidden="true">⏱</span>
+      <div
+        role="progressbar"
+        aria-label="세션 경과 시간"
+        aria-valuenow={Math.floor(elapsed / 1000)}
+        aria-valuemin={0}
+        aria-valuemax={Math.floor(MAX_SESSION_DURATION_MS / 1000)}
+        aria-valuetext={`${mm}:${ss} / ${totalMm}:00`}
+        className="h-1.5 w-20 overflow-hidden rounded bg-zinc-800"
+      >
         <div
           className={`h-full ${pct >= 90 ? "bg-red-500" : "bg-emerald-500"}`}
           style={{ width: `${pct}%` }}

@@ -50,10 +50,33 @@ export default function Home() {
   const [configs, setConfigs] = useState<AgentConfig[]>(initialConfigs);
   const [referenceDoc, setReferenceDoc] = useState("");
   const [summarizerId, setSummarizerId] = useState<AgentId | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const { view, actions } = useSession();
 
   return (
     <div className="flex h-dvh w-full flex-row bg-zinc-950 text-zinc-100">
+      {errorBanner && (
+        <div
+          role="alert"
+          className="fixed left-1/2 top-4 z-[80] flex max-w-xl -translate-x-1/2 items-start gap-3 rounded-lg border border-red-700 bg-red-950/90 px-4 py-3 text-sm text-red-100 shadow-2xl backdrop-blur"
+        >
+          <span className="mt-0.5 text-base">⚠️</span>
+          <div className="flex-1">
+            <div className="font-semibold">세션 시작 실패</div>
+            <p className="mt-1 break-words text-xs leading-relaxed text-red-200">
+              {errorBanner}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorBanner(null)}
+            aria-label="닫기"
+            className="rounded px-2 py-0.5 text-red-300 transition-colors hover:bg-red-900 hover:text-red-50"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <LeftPanel
         configs={configs}
         setConfigs={setConfigs}
@@ -63,6 +86,7 @@ export default function Home() {
         setSummarizerId={setSummarizerId}
         view={view}
         onStart={async (prompt) => {
+          setErrorBanner(null);
           const merged = configs.map((c) => ({
             ...c,
             systemPrompt: mergeWithReference(c.systemPrompt, referenceDoc),
@@ -75,7 +99,7 @@ export default function Home() {
           try {
             await actions.startSession(merged, prompt, effectiveSummarizer);
           } catch (err) {
-            alert(`세션 시작 실패: ${(err as Error).message}`);
+            setErrorBanner((err as Error)?.message ?? "알 수 없는 오류입니다.");
           }
         }}
         onSetSystemPrompt={(id: AgentId, prompt: string) =>

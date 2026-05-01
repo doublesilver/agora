@@ -51,20 +51,21 @@ const MARKDOWN_COMPONENTS = {
   li: ({ children }: { children?: React.ReactNode }) => (
     <li className="leading-[1.72]">{children}</li>
   ),
+  // 페이지 h1은 사이드바 'Agora' 하나만 — 마크다운 본문의 # 제목은 h2로 매핑한다.
   h1: ({ children }: { children?: React.ReactNode }) => (
-    <h1 className="mb-2 mt-3 text-lg font-semibold tracking-tight text-zinc-50">
-      {children}
-    </h1>
-  ),
-  h2: ({ children }: { children?: React.ReactNode }) => (
-    <h2 className="mb-1.5 mt-3 text-[15px] font-semibold tracking-tight text-zinc-50">
+    <h2 className="mb-2 mt-3 text-lg font-semibold tracking-tight text-zinc-50">
       {children}
     </h2>
   ),
-  h3: ({ children }: { children?: React.ReactNode }) => (
-    <h3 className="mb-1 mt-2.5 text-sm font-semibold text-zinc-100">
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="mb-1.5 mt-3 text-[15px] font-semibold tracking-tight text-zinc-50">
       {children}
     </h3>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h4 className="mb-1 mt-2.5 text-sm font-semibold text-zinc-100">
+      {children}
+    </h4>
   ),
   blockquote: ({ children }: { children?: React.ReactNode }) => (
     <blockquote className="my-2 border-l-2 border-zinc-700 pl-3 italic text-zinc-400">
@@ -204,9 +205,9 @@ function SetupHints() {
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           Agora · multi-agent debate
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
+        <h2 className="text-2xl font-semibold tracking-tight text-zinc-100">
           여러 AI의 토론에 직접 끼어드세요
-        </h1>
+        </h2>
         <p className="text-[13px] leading-relaxed text-zinc-400">
           Claude · GPT · Gemini가 직렬 라운드로 자유롭게 메시지를 주고받습니다.
           사용자는 언제든 즉시 끼어들거나 다음 라운드에 보탤 수 있고, 전체

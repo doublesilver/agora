@@ -100,21 +100,37 @@ export function InterventionInput({
       className={`flex shrink-0 flex-col gap-2 border-t border-zinc-800 bg-zinc-950 px-6 py-3 ${flash ? "animate-flash-amber" : ""}`}
     >
       {showHelp && <SlashHelpCard onClose={() => setShowHelp(false)} />}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-zinc-500">개입 방식:</span>
+      <div
+        role="group"
+        aria-label="메시지 개입 방식 선택"
+        className="flex flex-wrap items-center gap-2 text-xs"
+      >
+        <span className="text-zinc-500">현재 모드:</span>
         <button
           type="button"
+          aria-pressed={mode === "interrupt"}
           onClick={() => setMode("interrupt")}
-          className={`rounded px-2 py-0.5 ${mode === "interrupt" ? "bg-amber-700 text-white" : "bg-zinc-800 text-zinc-400"}`}
+          title="진행 중 발언을 즉시 끊고 사용자 메시지를 다음 라운드에 반영"
+          className={`flex items-center gap-1 rounded px-2 py-0.5 ring-1 transition-colors ${
+            mode === "interrupt"
+              ? "bg-amber-700 text-white ring-amber-500"
+              : "bg-zinc-800 text-zinc-400 ring-transparent hover:text-zinc-200"
+          }`}
         >
-          ⚡ 즉시 끼어들기
+          {mode === "interrupt" ? "●" : "○"} ⚡ 즉시 끼어들기
         </button>
         <button
           type="button"
+          aria-pressed={mode === "queue"}
           onClick={() => setMode("queue")}
-          className={`rounded px-2 py-0.5 ${mode === "queue" ? "bg-blue-700 text-white" : "bg-zinc-800 text-zinc-400"}`}
+          title="현재 라운드는 그대로 두고 다음 라운드에 반영"
+          className={`flex items-center gap-1 rounded px-2 py-0.5 ring-1 transition-colors ${
+            mode === "queue"
+              ? "bg-blue-700 text-white ring-blue-500"
+              : "bg-zinc-800 text-zinc-400 ring-transparent hover:text-zinc-200"
+          }`}
         >
-          📥 다음 라운드
+          {mode === "queue" ? "●" : "○"} 📥 다음 라운드
         </button>
         <button
           type="button"
@@ -164,8 +180,9 @@ export function InterventionInput({
                     ? "일시정지 중 — 메시지는 큐에 쌓였다가 재개 시 반영 (Enter 전송 · Shift+Enter 줄바꿈)"
                     : "예: '타겟 유저는 라이트 게이머다' — 즉시 끼어들면 진행 중 발언이 잘려요. /도움말 로 슬래시 커맨드 (Enter 전송)"
           }
+          aria-label="토론 개입 메시지 입력"
           disabled={view.status === "setup" || view.status === "stopped"}
-          className="h-16 flex-1 resize-none rounded border border-zinc-800 bg-zinc-900 p-2 text-sm disabled:opacity-50"
+          className="h-16 flex-1 resize-none rounded border border-zinc-800 bg-zinc-900 p-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         />
         <button
           type="button"

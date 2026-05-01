@@ -171,6 +171,7 @@ export function LeftPanel(props: Props) {
                 📂 가져오기
                 <input
                   type="file"
+                  aria-label="설정 JSON 파일 업로드"
                   accept=".json,application/json"
                   className="hidden"
                   onChange={async (e) => {
@@ -195,7 +196,11 @@ export function LeftPanel(props: Props) {
               </label>
             </>
           )}
-          <span className="rounded bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-400">
+          <span
+            tabIndex={-1}
+            aria-label={`현재 상태: ${view.status}`}
+            className="cursor-default select-none rounded bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-400"
+          >
             {view.status}
           </span>
         </div>
@@ -225,11 +230,17 @@ export function LeftPanel(props: Props) {
           onClick={() => setShowAgentsModal(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="agents-modal-title"
             className="flex max-h-[85vh] w-[460px] flex-col overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold tracking-tight">
+              <h2
+                id="agents-modal-title"
+                className="text-base font-semibold tracking-tight"
+              >
                 🤖 AI 에이전트 설정
               </h2>
               <button
@@ -324,6 +335,7 @@ export function LeftPanel(props: Props) {
                       역할 메모 (시스템 프롬프트)
                     </summary>
                     <textarea
+                      aria-label={`${AGENT_LABELS[c.id]} 역할 메모 (시스템 프롬프트)`}
                       value={c.systemPrompt}
                       onChange={(e) => {
                         patch(c.id, { systemPrompt: e.target.value });
@@ -414,14 +426,28 @@ export function LeftPanel(props: Props) {
                 if (canStart) props.onStart(userPrompt);
               }
             }}
-            placeholder="Enter로 시작 · Shift+Enter 줄바꿈"
+            aria-label="토론 주제"
+            placeholder={
+              canStart
+                ? "Enter로 시작 · Shift+Enter 줄바꿈"
+                : enabledCount < 2
+                  ? "활성 AI 2개 + 토론 주제 입력 필요"
+                  : "토론 주제를 입력하세요 · Shift+Enter 줄바꿈"
+            }
             className="h-20 resize-none rounded border border-zinc-800 bg-zinc-900 p-2 text-sm"
           />
           <button
             type="button"
             disabled={!canStart}
             onClick={() => props.onStart(userPrompt)}
-            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none"
+            title={
+              canStart
+                ? "세션 시작"
+                : enabledCount < 2
+                  ? "AI 2개 이상 활성화 필요"
+                  : "토론 주제 입력 필요"
+            }
+            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:opacity-60 disabled:shadow-none"
           >
             세션 시작
           </button>
@@ -678,12 +704,21 @@ function ApiKeyVerify({
 }) {
   const phase = state?.phase ?? "idle";
   if (phase === "idle") {
+    const blocked = !hasKey || disabled;
     return (
       <button
         type="button"
         onClick={onCheck}
-        disabled={!hasKey || disabled}
-        className="self-start rounded bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-300 hover:bg-zinc-700 disabled:opacity-40"
+        disabled={blocked}
+        title={
+          !hasKey
+            ? "API 키를 먼저 입력하세요"
+            : disabled
+              ? "세션 진행 중에는 변경할 수 없습니다"
+              : "키 검증"
+        }
+        aria-label={!hasKey ? "API 키 입력 후 검증 가능" : "API 키 검증"}
+        className="self-start rounded bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-300 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
       >
         🔍 키 검증
       </button>
@@ -767,6 +802,7 @@ function ReferenceDocSection({
         </div>
       </div>
       <textarea
+        aria-label="참고 문서 (모든 에이전트의 시스템 프롬프트 앞에 prepend)"
         value={referenceDoc}
         onChange={(e) => setReferenceDoc(e.target.value)}
         placeholder={
@@ -778,6 +814,7 @@ function ReferenceDocSection({
         📎 .md / .txt 파일 첨부
         <input
           type="file"
+          aria-label="참고 문서 .md 또는 .txt 파일 첨부"
           accept=".md,.markdown,.txt"
           className="hidden"
           onChange={async (e) => {

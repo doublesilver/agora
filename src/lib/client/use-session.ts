@@ -136,8 +136,15 @@ export function useSession() {
         }),
       });
       if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`session start failed: ${err}`);
+        const raw = await res.text();
+        let msg = raw;
+        try {
+          const parsed = JSON.parse(raw) as { error?: string };
+          if (parsed?.error) msg = parsed.error;
+        } catch {
+          /* JSON 아님 — raw 그대로 */
+        }
+        throw new Error(msg || `session start failed (HTTP ${res.status})`);
       }
       const { sessionId } = (await res.json()) as { sessionId: string };
       const startTs = Date.now();

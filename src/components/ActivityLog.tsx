@@ -52,6 +52,9 @@ export function ActivityLog({ view }: Props) {
       <div
         ref={scrollRef}
         onScroll={onScroll}
+        role="log"
+        aria-live="polite"
+        aria-label="실시간 활동 로그"
         className="flex-1 overflow-y-auto px-3 py-2"
       >
         {view.activityLog.length === 0 ? (

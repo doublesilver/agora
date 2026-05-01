@@ -39,7 +39,19 @@ export async function POST(req: Request) {
   }
 
   const sessionId = randomUUID();
-  const adapters = body.agents.map(createAdapter);
+  let adapters;
+  try {
+    adapters = body.agents.map(createAdapter);
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error:
+          (err as Error)?.message ??
+          "어댑터 생성 실패 — 인증 정보를 확인하세요.",
+      },
+      { status: 400 },
+    );
+  }
   // 결과 정리 담당은 활성 에이전트 중 1명. API 모드는 키 검사만, CLI 모드는
   // 클라이언트가 cli-status를 거쳐 후보 노출 — 서버는 활성 여부만 확인.
   const summarizerId =
