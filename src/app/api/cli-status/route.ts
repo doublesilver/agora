@@ -6,38 +6,51 @@ export const dynamic = "force-dynamic";
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { resolveCliBin, type CliId } from "@/lib/agents/cli-stream";
 
 const exec = promisify(execFile);
 
 interface CliCheck {
-  id: "claude" | "codex" | "gemini";
+  id: CliId;
   found: boolean;
   version?: string;
   path?: string;
   hint: string;
+  /** 환경변수 override 적용 여부 — UI "수동 경로 사용 중" 라벨용. */
+  overridden?: boolean;
 }
 
-const HINTS: Record<CliCheck["id"], string> = {
-  claude:
-    "Claude Code 설치: `npm install -g @anthropic-ai/claude-code` → 첫 실행 `claude` 시 브라우저로 OAuth.",
-  codex:
-    "Codex CLI 설치: `npm install -g @openai/codex` 또는 `brew install codex` → `codex login` 로 ChatGPT 계정 연결 (Plus/Pro 구독 필요).",
-  gemini:
-    "Gemini CLI 설치: `npm install -g @google/gemini-cli` → 첫 실행 `gemini` 시 Google 계정 OAuth.",
+const ENV_LABEL: Record<CliId, string> = {
+  claude: "AGORA_CLAUDE_BIN",
+  codex: "AGORA_CODEX_BIN",
+  gemini: "AGORA_GEMINI_BIN",
 };
 
-async function check(id: CliCheck["id"]): Promise<CliCheck> {
+const HINTS: Record<CliId, string> = {
+  claude:
+    "Claude Code 설치: `npm install -g @anthropic-ai/claude-code` → 첫 실행 `claude` 시 브라우저로 OAuth. PATH 미감지 시 `AGORA_CLAUDE_BIN=/절대/경로/claude npm run dev`.",
+  codex:
+    "Codex CLI 설치: `npm install -g @openai/codex` 또는 `brew install codex` → `codex login`. PATH 미감지 시 `AGORA_CODEX_BIN=/절대/경로/codex npm run dev`.",
+  gemini:
+    "Gemini CLI 설치: `npm install -g @google/gemini-cli` → 첫 실행 `gemini` 시 Google 계정 OAuth. PATH 미감지 시 `AGORA_GEMINI_BIN=/절대/경로/gemini npm run dev`.",
+};
+
+async function check(id: CliId): Promise<CliCheck> {
+  const bin = resolveCliBin(id);
+  const overridden = bin !== id;
   try {
-    const { stdout } = await exec(id, ["--version"], {
+    const { stdout } = await exec(bin, ["--version"], {
       timeout: 5000,
       env: process.env,
     });
-    let path = "";
-    try {
-      const { stdout: which } = await exec("which", [id], { timeout: 2000 });
-      path = which.trim();
-    } catch {
-      /* path 미보고 — found는 유효 */
+    let path = overridden ? bin : "";
+    if (!overridden) {
+      try {
+        const { stdout: which } = await exec("which", [id], { timeout: 2000 });
+        path = which.trim();
+      } catch {
+        /* PATH 추적 실패해도 --version 성공이면 found 유효. */
+      }
     }
     return {
       id,
@@ -45,12 +58,16 @@ async function check(id: CliCheck["id"]): Promise<CliCheck> {
       version: stdout.split("\n")[0]?.trim() || "(unknown)",
       path,
       hint: HINTS[id],
+      overridden,
     };
-  } catch (err) {
+  } catch {
     return {
       id,
       found: false,
-      hint: HINTS[id],
+      hint: overridden
+        ? `${ENV_LABEL[id]}=${bin}에서 binary 실행 실패. 경로/실행권한 확인. (또는 ${HINTS[id]})`
+        : HINTS[id],
+      overridden,
     };
   }
 }

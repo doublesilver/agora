@@ -10,6 +10,7 @@ import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
 import {
   createStreamQueue,
   isTerminationSignal,
+  resolveCliBin,
   spawnWithAbort,
 } from "./cli-stream";
 
@@ -20,7 +21,7 @@ interface CodexCliOptions {
 export function createCodexCliAdapter(
   opts: CodexCliOptions = {},
 ): AgentAdapter {
-  const command = opts.command ?? "codex";
+  const command = opts.command ?? resolveCliBin("codex");
 
   return {
     id: "codex",

@@ -6,7 +6,7 @@ import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
 import type { AgentId, TranscriptEvent } from "./agents/types";
 import { serializeTranscript } from "./agents/adapter-helpers";
-import { runCliOneshot } from "./agents/cli-stream";
+import { resolveCliBin, runCliOneshot } from "./agents/cli-stream";
 import { emitEvent, type SessionState } from "./session-store";
 
 const now = (): number => Date.now();
@@ -114,7 +114,12 @@ async function callClaudeCli(
   signal: AbortSignal,
 ): Promise<string> {
   const prompt = `${systemPrompt}\n\n---\n\n${userText}`;
-  return runCliOneshot("claude", ["-p", prompt], signal, CLI_TIMEOUT_MS);
+  return runCliOneshot(
+    resolveCliBin("claude"),
+    ["-p", prompt],
+    signal,
+    CLI_TIMEOUT_MS,
+  );
 }
 
 async function callCodexCli(
@@ -124,7 +129,7 @@ async function callCodexCli(
 ): Promise<string> {
   const prompt = `${systemPrompt}\n\n---\n\n${userText}`;
   return runCliOneshot(
-    "codex",
+    resolveCliBin("codex"),
     ["exec", "--skip-git-repo-check", "--sandbox", "read-only", prompt],
     signal,
     CLI_TIMEOUT_MS,
@@ -138,7 +143,7 @@ async function callGeminiCli(
 ): Promise<string> {
   const prompt = `${systemPrompt}\n\n---\n\n${userText}`;
   return runCliOneshot(
-    "gemini",
+    resolveCliBin("gemini"),
     ["-p", prompt, "-y", "-m", "gemini-2.5-flash"],
     signal,
     CLI_TIMEOUT_MS,

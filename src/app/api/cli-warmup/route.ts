@@ -8,14 +8,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { warmupCli } from "@/lib/agents/cli-stream";
+import { resolveCliBin, warmupCli } from "@/lib/agents/cli-stream";
 import type { AgentId } from "@/lib/agents/types";
-
-const COMMANDS: Record<AgentId, string> = {
-  claude: "claude",
-  codex: "codex",
-  gemini: "gemini",
-};
 
 export async function POST(req: Request) {
   let ids: AgentId[] | undefined;
@@ -27,7 +21,7 @@ export async function POST(req: Request) {
   }
   const targets: AgentId[] = ids?.length ? ids : ["claude", "codex", "gemini"];
   for (const id of targets) {
-    warmupCli(COMMANDS[id]);
+    warmupCli(resolveCliBin(id));
   }
   return NextResponse.json({ warmed: targets });
 }

@@ -84,12 +84,33 @@ GEMINI_API_KEY=
 CLI 모드는 사용자 머신에 이미 OAuth/구독으로 인증된 1st-party CLI를 spawn해서 활용한다 (운영 통찰 §7 참조). 3종 모두 지원.
 
 ```bash
-# 사전 확인
-which claude codex gemini   # 3개 모두 PATH 에 있으면 OK
+# 사전 확인 — 같은 터미널에서 dev 서버를 띄울 PATH가 잡혀 있는지
+which claude codex gemini   # 3개 모두 출력되면 OK
 claude --version
 codex --version
 gemini --version
 ```
+
+> ⚠️ **반드시 터미널에서 직접 `npm run dev`** 하세요. VSCode/Cursor의 GUI "Run" 버튼이나 Finder에서 띄우면 IDE의 PATH(보통 `~/.npm-global/bin`, `/opt/homebrew/bin` 누락)만 spawn에 상속돼 `claude`/`codex`/`gemini`가 안 잡힙니다. Node `child_process`는 셸이 아니라 `~/.zshrc`도 안 읽습니다.
+
+### CLI 자동감지 실패 시 — 환경변수로 절대경로 override
+
+PATH가 안 잡히면 좌패널 CLI 카드의 미설치 안내 문구를 따라 환경변수에 절대경로를 박고 dev 서버를 다시 띄웁니다 (3개 중 안 잡힌 것만 박으면 됩니다):
+
+```bash
+# 절대경로 확인
+which claude   # 예: /Users/X/.npm-global/bin/claude
+which codex    # 예: /opt/homebrew/bin/codex
+which gemini   # 예: /usr/local/bin/gemini
+
+# override 적용
+AGORA_CLAUDE_BIN=/Users/X/.npm-global/bin/claude \
+AGORA_CODEX_BIN=/opt/homebrew/bin/codex \
+AGORA_GEMINI_BIN=/usr/local/bin/gemini \
+npm run dev
+```
+
+좌패널 CLI 카드에 경로가 표시되며 `🟢 사용 가능`으로 바뀝니다. 환경변수 미설정 시 default `claude`/`codex`/`gemini` 명령을 PATH에서 찾습니다.
 
 각 CLI 호출 시그니처 (어댑터 내부에서 자동):
 

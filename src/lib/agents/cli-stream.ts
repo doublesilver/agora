@@ -2,6 +2,22 @@
  * claude/codex/gemini CLI 어댑터가 공유. 파싱은 각 어댑터 자체. */
 import { spawn, type ChildProcess } from "node:child_process";
 
+export type CliId = "claude" | "codex" | "gemini";
+
+/** PATH에 없거나 dev 서버를 GUI에서 띄워 spawn에서 못 찾는 환경을 위한
+ * 절대경로 override. 셋 중 어느 하나가 안 잡히면 그 id에만 환경변수 박아주면
+ * 됨 — `AGORA_CLAUDE_BIN=/path/to/claude`. 미설정 시 default 명령(`id` 그대로). */
+const ENV_KEY: Record<CliId, string> = {
+  claude: "AGORA_CLAUDE_BIN",
+  codex: "AGORA_CODEX_BIN",
+  gemini: "AGORA_GEMINI_BIN",
+};
+
+export function resolveCliBin(id: CliId): string {
+  const override = process.env[ENV_KEY[id]];
+  return override && override.trim().length > 0 ? override : id;
+}
+
 export interface StreamQueue {
   push: (chunk: string) => void;
   finish: (err?: unknown) => void;

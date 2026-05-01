@@ -9,6 +9,7 @@ import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
 import {
   createStreamQueue,
   isTerminationSignal,
+  resolveCliBin,
   spawnWithAbort,
 } from "./cli-stream";
 
@@ -22,7 +23,7 @@ const DEFAULT_MODEL = "gemini-2.5-flash"; // CLI 부팅 ~10s + flash로 응답 �
 export function createGeminiCliAdapter(
   opts: GeminiCliOptions = {},
 ): AgentAdapter {
-  const command = opts.command ?? "gemini";
+  const command = opts.command ?? resolveCliBin("gemini");
   const model = opts.model ?? DEFAULT_MODEL;
 
   return {

@@ -12,11 +12,12 @@ import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
 import {
   createStreamQueue,
   isTerminationSignal,
+  resolveCliBin,
   spawnWithAbort,
 } from "./cli-stream";
 
 interface ClaudeCliOptions {
-  command?: string; // 기본 'claude'
+  command?: string; // 기본 resolveCliBin('claude') — env override 또는 'claude'
 }
 
 function extractAssistantText(event: unknown): string {
@@ -42,7 +43,7 @@ function extractAssistantText(event: unknown): string {
 export function createClaudeCliAdapter(
   opts: ClaudeCliOptions = {},
 ): AgentAdapter {
-  const command = opts.command ?? "claude";
+  const command = opts.command ?? resolveCliBin("claude");
 
   return {
     id: "claude",

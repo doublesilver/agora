@@ -124,6 +124,24 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 - textarea 옆에 작은 `↺ Reset to default` 버튼 — 클릭 시 시드로 복원.
 - 시드 문자열은 `src/lib/agents/role-seeds.ts` 상수로 분리, UI/백엔드 양쪽 단일 출처.
 
+### A8.1 CLI binary 자동감지 + 환경변수 override
+
+CLI 모드 어댑터(claude/codex/gemini)는 Node `child_process.spawn`으로 호출되는데, spawn은 셸이 아니라 부모 프로세스의 `PATH`만 그대로 상속한다. 면접관/채점자가 GUI(VSCode/Cursor "Run", Finder)로 dev 서버를 띄우면 IDE PATH에 `~/.npm-global/bin`, `/opt/homebrew/bin`이 빠져 있어 `claude`/`codex`/`gemini`가 안 잡히는 케이스가 흔하다.
+
+대응 두 단계:
+
+1. **권장 1순위**: 터미널에서 `which claude codex gemini`로 사전 확인 후 같은 터미널에서 `npm run dev`. README §5에 박제.
+2. **fallback**: 환경변수 절대경로 override를 도입(`src/lib/agents/cli-stream.ts`의 `resolveCliBin(id)`). 셋 중 어느 하나만 PATH 못 잡혀도 그 id에만 박아주면 됨.
+
+```bash
+AGORA_CLAUDE_BIN=/abs/path/claude \
+AGORA_CODEX_BIN=/abs/path/codex \
+AGORA_GEMINI_BIN=/abs/path/gemini \
+npm run dev
+```
+
+`resolveCliBin`은 환경변수 우선, 없으면 default 명령(`id` 그대로) 반환. `cli-status` 라우트도 동일 함수를 거쳐 감지하므로 좌패널 카드에 경로가 그대로 노출돼 사용자가 override 적용 여부를 시각 확인 가능. override 실패 시 hint에 사유와 재시도 가이드.
+
 ### A9. 결과 정리 담당 (final 산출물)
 
 토론 종료 시 결과물을 한 번에 회수할 수 있게 **결과 정리 담당(summarizer)** 한 명을 사용자가 좌패널에서 지정한다. 1차 제출에서는 종료 시 1회 final 산출물만 생성한다 (rolling 요약은 호출 비용·UX 노이즈 균형이 맞지 않아 제외).
