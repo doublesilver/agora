@@ -24,3 +24,23 @@
 - M7 README 8섹션, 운영 통찰 3 강제 항목 + 외부 링크 박제, scrub-check 자동 검증.
 - 클론 검증 통과: 임시 dir에 git clone → npm install → typecheck 클린.
 - 잔여: M8 (본편 시연 녹화 + 백업 녹화 + GitHub 푸시 + zip 옵션).
+
+## 2026-05-01 — opencode.ai급 polish 4종 (ralph 세션)
+
+- 실시간 요약 + 최종 산출물(M9 격) 백엔드/UI/Export 통합 완료. summarizer.ts 신규(API 3종 단발 호출), summary_update/final_artifact/summary_error 이벤트 추가, 라운드 종료마다 + 인터럽트 직후 + session_end 직전 hook.
+- 폰트: Pretendard Variable + Noto Sans KR + JetBrains Mono를 layout.tsx의 link rel=stylesheet로 로드 (CSS @import는 tailwindcss 인라인 펼침 뒤에 와 spec 위반).
+- ralph US-001~US-005 5개 스토리 모두 통과:
+  - CommandPalette.tsx 신규 — ⌘K/Ctrl+K, 검색·↑↓·Enter·Esc, status 기반 enabled.
+  - KeybindingsHelp.tsx 신규 — ? 토글, kbd 키 칩으로 단축키 그룹별 안내.
+  - 전역 단축키 wiring — page.tsx에서 Space=pause/resume, Esc=stop confirm, /=focus, ?=help, ⌘K=palette. isTextEditable 가드로 입력 중 양보.
+  - InterventionInput에 ⌘Enter=즉시 인터럽트 강제 모드 추가, data-shortcut-target="intervention-input"로 / 단축키 focus 가능.
+  - LeftPanel 시작 버튼에 data-shortcut-target="start-session"로 팔레트 액션 click 트리거 가능.
+  - HeaderBar에 ⌘K 버튼 + Export 톤다운, 발광 도트 + 그라데이션 wordmark.
+  - ChatView SetupHints opencode 톤 재디자인 — step 카드 3개 + 단축키 칩.
+- architect verification APPROVED — 단축키 함정·모달 z-index·SSE reducer 회귀·typecheck 모두 클린.
+- ai-slop-cleaner pass — page.tsx mergeWithReference 자명 docblock + CommandPalette 자명 주석 2개 제거 (보수적, 기능 변경 0).
+- post-deslop regression: typecheck 0 에러 + GET / 200 OK.
+
+### 잔여
+- M8 시연 녹화 + GitHub 푸시 + zip 제출.
+- 미커밋 변경 정리 (오늘 커밋 분리 가이드 필요 시 git-master에 위임).

@@ -68,7 +68,7 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 ### A6. 사용자 개입 — 4종
 
 1. **즉시 인터럽트 (interrupt)** — 사용자 메시지 전송 시 모드에 따라 분기:
-   - `mode=interrupt`(기본): 진행 중 라운드의 `roundAbort`를 fire → **현재 발언 중인 에이전트의 스트림 즉시 중단** + 라운드 통째 종료 (남은 발언자는 호출 안 함) → 부분 응답은 `agent_end(interrupted:true)`로 마감 → 사용자 메시지를 transcript에 push → 새 라운드 시작 (다음 발언자가 사용자 메시지 직접 받아 반응).
+   - `mode=interrupt`(기본): 진행 중 라운드의 `roundAbort`를 fire → **현재 발언 중인 에이전트의 스트림 즉시 중단** + 라운드 통째 종료 (남은 발언자는 호출 안 함) → 부분 응답은 `agent_end(interrupted:true)`로 마감하고 (인터럽트 시점까지 누적된 텍스트는 transcript에 발화로 push되어 다음 라운드 화자가 본다 — "그 자리까지 한 말은 발언으로 인정") → 사용자 메시지를 transcript에 push → 새 라운드 시작 (다음 발언자가 사용자 메시지 직접 받아 반응).
    - `mode=queue`: 메시지를 대기 큐에 enqueue → 다음 라운드 시작 시 transcript에 반영 (기존 동작).
    - 토글은 `InterventionInput` UI에서 사용자가 선택.
 2. **일시정지 / 재개 (pause / resume)** — 라운드 경계에서 멈춤:
@@ -88,7 +88,7 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 
 ### A8. 강건성 — 타임아웃·에러·예산
 
-- **에이전트 타임아웃**: 라운드당 한 에이전트가 30초 안에 첫 토큰을 못 보내면 abort → 그 라운드는 PASS 처리 + `agent_timeout` 이벤트 로그. 30초는 상수 `AGENT_FIRST_TOKEN_TIMEOUT_MS = 30_000`로 분리.
+- **에이전트 타임아웃**: 라운드당 한 에이전트가 60초 안에 첫 토큰을 못 보내면 abort → 그 라운드는 PASS 처리 + `agent_timeout` 이벤트 로그. 60초는 상수 `AGENT_FIRST_TOKEN_TIMEOUT_MS = 60_000`로 분리. CLI cold-start(~25s) + 추론 latency를 흡수하기 위한 값.
 - **에러 처리**: SDK throw 또는 CLI 비정상 종료 시 그 라운드 PASS + UI에 빨간 에러 라벨 한 줄("Codex: <짧은 메시지>"). 자동 재시도 없음. 다음 라운드부터 정상 시도. `agent_error` 이벤트 로그.
 - **토큰 예산 캡**: 세션 전체 누적 입력+출력 토큰 `MAX_SESSION_TOKENS = 50_000` 도달 시 자동 STOP, 사유 `budget_exceeded`. 헤더 바에 진행률 표시. 카운팅은 SDK가 반환하는 usage 메타로 누적, CLI 모드는 응답 글자 수의 1/4 (대략) 추정 폴백.
 - **transcript 무제한**: 슬라이딩 윈도우·요약 도입하지 않음. 토큰 캡이 먼저 도달하므로 컨텍스트 폭주 방지는 캡에 위임.
@@ -123,6 +123,17 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 - 사용자가 비워서 저장한 경우(빈 문자열·공백만), 백엔드에서 감지하여 **자동으로 시드로 fallback**.
 - textarea 옆에 작은 `↺ Reset to default` 버튼 — 클릭 시 시드로 복원.
 - 시드 문자열은 `src/lib/agents/role-seeds.ts` 상수로 분리, UI/백엔드 양쪽 단일 출처.
+
+### A9. 요약 담당 (실시간 요약 + 최종 산출물)
+
+토론 중 사용자가 "지금까지 무슨 얘기 했는지" 빠르게 잡고 다음 발화를 정할 수 있게, 그리고 종료 시 결과물을 한 번에 회수할 수 있게 **요약 담당(summarizer)** 한 명을 사용자가 좌패널에서 지정한다.
+
+- **선택**: 좌패널 "📝 요약 담당" 섹션. 활성 에이전트 중 **API 모드 + 키 입력**된 후보만 노출(1차 구현 한계). 미지정 시 요약 비활성.
+- **rolling 요약**: 매 2 라운드마다 + **인터럽트 직후** transcript 스냅샷을 압축. 새 의견은 추가하지 말고 transcript 안에 있는 것만 4~8 bullets / 600자 이내로. 결과는 `summary_update` 이벤트로 SSE+JSONL emit.
+- **final 산출물**: `session_end` 직전 한 번. `## 결론 / ## 핵심 논점 / ## 미해결 / ## 액션 아이템` 4섹션 markdown 강제. 결과는 `final_artifact` 이벤트.
+- **단발 호출 정책**: 요약은 `speak()`를 우회하고 SDK 단발 호출(타임아웃 45s, AbortController)로 직접 호출 — PASS 규약·라운드 시그널이 끼면 압축 의도와 충돌. 어댑터 인터페이스 일관성을 한 번 깨는 대신 요약 호출 비용·지연을 격리.
+- **CLI 모드 1차 미지원**: child_process spawn cold-start 25~40s가 라운드마다 누적되면 시연 흐름이 무너지므로 1차 제출에서는 API 3종만. 좌패널 칩에서 CLI 후보는 자동 제외 + 요약 미선택 시 silent skip — `summary_error` 1회 emit 외 회귀 없음.
+- **Export 합치기**: `transcriptToMarkdown`이 `eventLog`에서 가장 최근 `final_artifact`를 찾아 transcript 뒤에 append. JSONL 원본을 보지 않는 채점자도 markdown 한 개로 결론까지 도달.
 
 ## UI/UX 설계
 
@@ -197,22 +208,33 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 │   │   ├── agents/
 │   │   │   ├── types.ts                # AgentAdapter 인터페이스
 │   │   │   ├── role-seeds.ts           # 기본 역할 시스템 프롬프트 상수 (A5)
+│   │   │   ├── adapter-helpers.ts      # transcript 직렬화 + 시스템 프롬프트 augment
+│   │   │   ├── cli-stream.ts           # CLI 어댑터 공용 spawn/stream/abort 헬퍼
+│   │   │   ├── fake.ts                 # 시연·테스트용 fake echo 어댑터
 │   │   │   ├── claude-api.ts
 │   │   │   ├── claude-cli.ts
-│   │   │   ├── codex-api.ts
+│   │   │   ├── gpt-api.ts              # Codex(OpenAI) API 어댑터 — id="codex"이지만 SDK가 `openai`라 파일명만 gpt-api
 │   │   │   ├── codex-cli.ts
 │   │   │   ├── gemini-api.ts
 │   │   │   └── gemini-cli.ts
-│   │   ├── orchestrator.ts             # 자유 메시지 라우팅
+│   │   ├── orchestrator.ts             # entry — createSessionState/runSession/intervene/pause/resume/stop
+│   │   ├── orchestrator-round.ts       # 한 라운드 = 화자 회전 + 직렬 호출
+│   │   ├── orchestrator-stream.ts      # 발화자 토큰 스트림 + 첫 토큰 timeout + 시간캡 재검사
+│   │   ├── summarizer.ts               # 요약 담당 단발 호출 (rolling/final, 1차: API 모드 3종)
 │   │   ├── transcript.ts               # 공유 transcript 상태
 │   │   ├── logger.ts                   # JSONL append-only 로거
-│   │   └── session-store.ts            # in-memory 세션 맵
+│   │   ├── markdown-export.ts          # transcript + final_artifact → Markdown
+│   │   ├── session-store.ts            # in-memory 세션 맵 + OrchestratorEvent 단일 출처
+│   │   └── client/                     # 클라이언트 측 hook·타입·friendly-error·config-io
 │   └── components/
-│       ├── LeftPanel.tsx               # 인증/시스템프롬프트/컨트롤 (collapsible)
-│       ├── ChatView.tsx                # 단일 시간순 스레드
-│       ├── InterventionInput.tsx       # 입력창 + mode 토글 + Send
-│       ├── HeaderBar.tsx               # 상태 뱃지·라운드·Export
-│       └── PromptEditor.tsx            # 핫스왑용 textarea + 저장
+│       ├── LeftPanel.tsx               # 인증/시스템프롬프트/요약담당/컨트롤
+│       ├── ChatView.tsx                # 단일 시간순 스레드 + 실시간 요약 + 최종 산출물 카드
+│       ├── InterventionInput.tsx       # 입력창 + mode 토글 + Send + ⌘Enter
+│       ├── HeaderBar.tsx               # 상태 뱃지·라운드·Export·⌘K
+│       ├── AgentStrip.tsx              # 발화자 상태 인디케이터 행
+│       ├── ActivityLog.tsx             # 메타 이벤트 라이브 피드
+│       ├── CommandPalette.tsx          # ⌘K 명령 팔레트
+│       └── KeybindingsHelp.tsx         # ? 단축키 도움말 모달
 └── logs/                                # 런타임 생성, .gitignore에 추가하지 않음(샘플 1개 커밋)
 ```
 
@@ -345,8 +367,13 @@ loop:
 {"type":"agent_timeout","agentId":"gemini","turn":3,"timeoutMs":30000,"ts":...}
 {"type":"agent_error","agentId":"codex","turn":3,"message":"...redacted-safe...","ts":...}
 {"type":"usage","agentId":"claude","turn":3,"inputTokens":1234,"outputTokens":456,"sessionTotal":12345,"ts":...}
-{"type":"session_end","reason":"user_stop|max_turns|all_pass|budget_exceeded|time_exceeded","ts":...}
+{"type":"summary_update","summarizerId":"claude","atTurn":4,"text":"...rolling markdown...","ts":...}
+{"type":"final_artifact","summarizerId":"claude","text":"## 결론\n...\n## 핵심 논점\n...\n## 미해결\n...\n## 액션 아이템\n...","ts":...}
+{"type":"summary_error","stage":"rolling|final","message":"...redacted-safe...","ts":...}
+{"type":"session_end","reason":"user_stop|max_turns|budget_exceeded|time_exceeded","ts":...}
 ```
+
+요약 이벤트 3종(`summary_update`/`final_artifact`/`summary_error`)은 1차 구현에서 **API 모드 어댑터(Claude/GPT/Gemini)에서만** emit된다. CLI 모드 어댑터를 요약 담당으로 지정하면 `summary_error(stage:"rolling|final", message:"CLI 모드 요약은 1차 구현 범위 외")`만 한 번 발생한다. UI는 좌패널 요약 담당 칩에서 API+키 검증된 후보만 노출해 사용자가 잘못 고르지 못하게 가드한다.
 
 API 키 / OAuth 토큰 / CLI 인자는 **절대 로그에 쓰지 않는다**.
 
@@ -392,7 +419,7 @@ CLI 모드는 OS PATH 차이 큼. `which claude` 등으로 실재 확인 → 없
 - [ ] STOP 클릭 → 진행 중 응답 즉시 중단, `session_end` 로그
 - [ ] 시스템 프롬프트 핫스왑: 진행 중 textarea 저장 → 다음 라운드 응답이 새 프롬프트 영향 받음 + `system_prompt_change` 이벤트 기록
 - [ ] Export Markdown 버튼: transcript md 파일 정상 다운로드
-- [ ] 30초 타임아웃: 한 에이전트 의도적으로 응답 안 하게 한 경우 그 라운드 PASS + `agent_timeout` 이벤트
+- [ ] 60초 타임아웃: 한 에이전트 의도적으로 응답 안 하게 한 경우 그 라운드 PASS + `agent_timeout` 이벤트
 - [ ] 에이전트 에러: 잘못된 키로 한 어댑터 강제 실패 → 그 라운드 PASS + 빨간 에러 라벨 + `agent_error` 이벤트, 다음 라운드 다른 어댑터 정상 진행
 - [ ] 토큰 예산: 캡을 작게(예: 2,000) 설정한 dev 시나리오에서 도달 시 자동 STOP + `session_end(reason=budget_exceeded)`
 - [ ] 시간 캡: `MAX_SESSION_DURATION_MS`를 작게(예: 30_000ms) 설정 후 30초 경과 시 자동 STOP + `session_end(reason=time_exceeded)`

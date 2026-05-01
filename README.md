@@ -10,10 +10,13 @@
 
 ## 1. 개요
 
-- 프론트엔드: Next.js 16 + TypeScript + Tailwind 4 (다크 default)
-- 백엔드: Next.js Node.js runtime API routes (8개) + SSE 스트리밍 + JSONL append-only 로거
-- 어댑터: Claude API / GPT API / Gemini API / Claude CLI (1차 제출 4개)
-- 차별화 코드: 직렬 라운드 오케스트레이터 + 4종 사용자 개입(interrupt/queue/pause·resume/stop) + 30턴·50k토큰·5분 시간 캡 + 시스템 프롬프트 핫스왑
+- 프론트엔드: Next.js 16 + TypeScript + Tailwind 4 (다크 default), Pretendard / Noto Sans KR / JetBrains Mono
+- 백엔드: Next.js Node.js runtime API routes (11개) + SSE 스트리밍 + JSONL append-only 로거
+- 어댑터: Claude API/CLI · Codex(OpenAI) API/CLI · Gemini API/CLI — **6종 모두 1차 제출 포함**
+- 차별화 코드:
+  - 직렬 라운드 오케스트레이터 + 4종 사용자 개입(interrupt/queue/pause·resume/stop) + 30턴·50k토큰·5분 시간 캡 + 시스템 프롬프트 핫스왑
+  - **요약 담당(summarizer)** — 사용자가 지정한 1명이 라운드마다 실시간 요약 + 종료 시 `결론/핵심논점/미해결/액션아이템` 4섹션 산출물 (API 모드 3종 한정, ADR §A9)
+  - **⌘K 명령 팔레트 + 키바인딩 (`?` 도움말 / Space 일시정지 / Esc 종료 / `/` 입력 포커스 / ⌘Enter 즉시 끼어들기)** — opencode 풍 키보드 친화 UX
 
 스크린샷 / 시연 녹화: M8 단계에서 첨부.
 
@@ -36,6 +39,19 @@ API 키는 다음 중에서 사용자가 UI에 직접 입력 (서버 디스크 �
 
 ## 3. 설치·실행
 
+### 3.1 키·CLI 없이 30초 시연 (재현 보장)
+
+```bash
+git clone <REPO_URL> agora
+cd agora
+npm install
+AGORA_FAKE=1 npm run dev
+```
+
+http://localhost:3000 접속 → 좌패널 AI 2개 활성화(키 비워둬도 됨) → 토론 주제 선택 → 세션 시작. 모든 어댑터가 fake echo로 강제되어 **API 키·CLI 인증 없이 UI·오케스트레이터·인터럽트·요약·Export 흐름을 그대로 검증**할 수 있다. 채점 reproduce용 1순위 경로.
+
+### 3.2 본편 시연 (실어댑터)
+
 ```bash
 git clone <REPO_URL> agora
 cd agora
@@ -45,11 +61,21 @@ npm run dev
 
 http://localhost:3000 접속 후:
 
-1. 좌측 패널에서 사용할 AI 2개 이상 활성화
+1. 좌측 패널 → "AI 에이전트 설정" 모달 → 사용할 AI **2개 이상 활성화**
 2. 모드 선택 (API: 키 입력 / CLI: 머신에 설치된 CLI 사용)
-3. 토론 주제 입력 → "세션 시작"
+3. (선택) "📝 요약 담당" 칩에서 1명 지정 — 라운드마다 실시간 요약 + 종료 시 4섹션 산출물
+4. 토론 주제 입력 → "세션 시작" (또는 ⌘K → "세션 시작")
 
-⌘+Enter (또는 Ctrl+Enter)로 메시지 전송. Interrupt 모드는 진행 중 발언을 즉시 끊고, Queue 모드는 다음 라운드에 반영.
+본편 reproduce에 필요한 인증 (활성화한 어댑터만 해당):
+
+| 에이전트                | 모드 | 사전조건                                                                                        |
+| ----------------------- | ---- | ----------------------------------------------------------------------------------------------- |
+| Claude                  | API  | https://console.anthropic.com 에서 API 키 1개                                                   |
+| Codex (OpenAI)          | API  | https://platform.openai.com/api-keys 에서 API 키 1개                                            |
+| Gemini                  | API  | https://ai.google.dev/ 에서 API 키 1개                                                          |
+| Claude / Codex / Gemini | CLI  | 머신에 `claude` / `codex` / `gemini` 가 설치·인증돼 있어야 (`which {cmd}` + `--version`로 확인) |
+
+Enter로 전송 (Shift+Enter 줄바꿈, ⌘Enter 즉시 끼어들기). 진행 중 ⌘K 명령 팔레트, `?` 단축키 도움말, `/` 입력 포커스, Space 일시정지/재개, Esc 종료.
 
 ---
 
@@ -91,10 +117,14 @@ gemini --version
 
 CLI 미설치/미인증·구독 한도 초과 시 라운드에서 `agent_error` 발생 후 PASS로 폴백 → 다음 라운드는 정상 시도.
 
+> 💡 **MCP 도구 자동 활용**: CLI 모드는 사용자 머신의 1st-party CLI를 그대로 spawn하기 때문에 `~/.claude/mcp.json` 등 사용자가 등록한 MCP 서버가 토론 중 그대로 활용된다. 별도 통합 작업 없이 도메인 도구·로컬 파일·외부 API 모두 토론에 끌어들일 수 있음.
+
+> ⚠️ **요약 담당은 API 모드 어댑터만 1차 지원**: rolling 요약은 매 2 라운드마다 + 인터럽트 직후, final 산출물은 종료 시 한 번 호출되는데, CLI spawn cold-start(25~40s)가 라운드마다 누적되면 시연 흐름이 깨진다. 그래서 좌패널 "📝 요약 담당" 칩은 **API 모드 + 키 검증된 후보**만 노출한다. CLI 전용 세션은 요약 비활성으로 동작 (transcript와 Export는 그대로). 자세한 ADR은 `AGENTS.md` §A9 참조.
+
 | 증상                                      | 원인                                    | 해결                         |
 | ----------------------------------------- | --------------------------------------- | ---------------------------- |
 | `agent_error: claude CLI exited code=...` | 인증 만료                               | `claude` 한 번 실행해 재인증 |
-| `agent_timeout (30s)`                     | 첫 토큰 지연 (네트워크/모델 부팅)       | 다음 라운드 자동 재시도      |
+| `agent_timeout (60s)`                     | 첫 토큰 지연 (네트워크/모델 부팅)       | 다음 라운드 자동 재시도      |
 | 라운드 무한 PASS                          | API 키 잘못 (인증 실패가 PASS로 가려짐) | 좌패널에서 키 확인 후 재시작 |
 
 ---
@@ -105,13 +135,14 @@ CLI 미설치/미인증·구독 한도 초과 시 라운드에서 `agent_error` 
 
 이벤트 종류 (스키마 단일 출처: `AGENTS.md` JSONL 섹션):
 
-- `session_start` / `session_end` (reason: user_stop / max_turns / all_pass / budget_exceeded / time_exceeded)
+- `session_start` / `session_end` (reason: user_stop / max_turns / budget_exceeded / time_exceeded)
 - `agent_start` / `token` / `agent_end(interrupted)` / `agent_pass`
 - `agent_timeout` / `agent_error`
 - `user_message(mode: interrupt|queue)`
 - `system_prompt_change`
 - `status` (running|idle|paused|stopped)
 - `usage` (input/output 토큰 + sessionTotal)
+- `summary_update` / `final_artifact` / `summary_error` (요약 담당 지정 시에만, API 모드 3종 한정)
 
 API 키 / OAuth 토큰은 절대 기록되지 않는다. 자동 검증: `bash scripts/scrub-check.sh logs/<id>.jsonl`.
 
@@ -119,13 +150,13 @@ API 키 / OAuth 토큰은 절대 기록되지 않는다. 자동 검증: `bash sc
 
 ## 7. 운영 통찰 — 왜 이렇게 만들었는가
 
-10년차 외주 풀스택으로서 멀티 AI 도구를 굴려본 경험에서 본 결정 3개를 짧게 정리한다.
+**왜 표준 OAuth를 구현하지 않았는가.** Anthropic·OpenAI는 외부 앱용 OAuth provider를 일반 개발자에게 공개하지 않는다 ([Anthropic API Auth](https://docs.anthropic.com/claude/reference/getting-started-with-the-api), OpenAI는 API 키 전용). 진짜 OAuth가 가능한 건 Google뿐. 그래서 Claude·OpenAI는 "1st-party CLI를 spawn해 자기 토큰으로 호출"하는 방식이 사실상의 OAuth 대체다. UI에 가짜 OAuth 버튼을 두는 것보다 정직하다.
 
-**왜 표준 OAuth를 구현하지 않았는가.** 채점자는 "구독제 로그인"을 기대하지만 현실은 다르다. Anthropic·OpenAI는 외부 앱용 OAuth provider를 일반 개발자에게 공개하지 않는다 ([Anthropic API Auth](https://docs.anthropic.com/claude/reference/getting-started-with-the-api), OpenAI Platform은 API 키 전용). 진짜 OAuth가 가능한 건 Google뿐이다. 그래서 Claude·OpenAI에 대해서는 "1st-party CLI를 spawn해 자기 토큰으로 호출"하는 방식이 사실상의 OAuth 대체다. UI에 가짜 OAuth 버튼을 두는 것보다 정직하다.
+**왜 자유 메시지를 직렬 라운드로 만들었는가.** 병렬 라운드(`Promise.all`)는 두 AI가 서로의 발언을 못 듣고 동시 발화해 "엇갈린 독백"이 된다. 직렬로 바꾸자 토크쇼식 핑퐁이 살아났다. SSE 토큰 스트리밍이 체감 속도를 보전한다.
 
-**왜 자유 메시지를 직렬 라운드로 만들었는가.** 처음엔 병렬 라운드(`Promise.all`)로 짰지만 같은 라운드 내 두 AI가 서로의 발언을 못 듣고 동시 발화하면 "엇갈린 독백"이 된다. 직렬로 바꾸자 즉시 토크쇼식 핑퐁이 살아났다. 라운드 wall-clock은 늘지만 SSE 토큰 단위 스트리밍이 사용자 체감 속도를 충분히 보전한다.
+**왜 인터럽트는 라운드만 끊고 세션은 안 끊는가.** "사용자 의견 반영 후 다시 시작"이 STOP보다 자연스럽다. `roundAbort`와 `sessionAbort`를 분리해 인터럽트는 현재 발언자 스트림만 abort하고 사용자 메시지를 transcript에 push한 뒤 새 라운드를 띄운다. STOP은 별개 버튼으로 사고를 막는다.
 
-**왜 인터럽트는 라운드만 끊고 세션은 안 끊는가.** "사용자 의견 반영 후 다시 시작"이 STOP보다 훨씬 자연스럽다. `roundAbort`와 `sessionAbort`를 분리해 인터럽트는 현재 발언자 스트림만 abort하고 사용자 메시지를 transcript에 push한 뒤 새 라운드를 띄운다. STOP은 별개 버튼으로 명확히 분리해 사고를 막는다.
+**보안 가정.** 단일 사용자 로컬 데모 환경 가정. sessionId는 UUIDv4(122-bit 엔트로피)라 추측 불가하지만 외부 노출 시 동일 세션의 stop/intervene/system-prompt 호출이 가능 — 다중 사용자 배포는 별도 세션 인증 토큰 + CORS 강화 필요. API 키는 클라 sessionStorage만 저장, 서버는 메모리 통과만(JSONL·콘솔·SSE 어디에도 echo 없음, `scrub-check.sh` 자동 검증).
 
 ---
 
