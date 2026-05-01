@@ -1,8 +1,8 @@
 /* 어댑터 팩토리 — 클라가 보낸 spec → AgentAdapter 인스턴스.
- * M3: spec.mode + spec.id로 실어댑터 분기. fake는 환경변수 AGORA_FAKE=1일 때 강제 옵션.
+ * spec.mode + spec.id로 실어댑터 분기. (Fake echo 어댑터는 verify 스크립트
+ * 전용으로 src/lib/agents/fake.ts에 남아있고 production 진입점에선 사용하지 않는다.)
  */
 import type { AgentAdapter, AgentId, AgentMode } from "./agents/types";
-import { createFakeAdapter } from "./agents/fake";
 import { createClaudeApiAdapter } from "./agents/claude-api";
 import { createGptApiAdapter } from "./agents/gpt-api";
 import { createGeminiApiAdapter } from "./agents/gemini-api";
@@ -18,11 +18,6 @@ export interface AgentSpec {
 }
 
 export function createAdapter(spec: AgentSpec): AgentAdapter {
-  // 시연·테스트용 강제 fake 모드
-  if (process.env.AGORA_FAKE === "1") {
-    return createFakeAdapter(spec.id);
-  }
-
   if (spec.mode === "api") {
     if (!spec.apiKey) {
       throw new Error(

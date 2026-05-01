@@ -38,19 +38,6 @@ API 키는 다음 중에서 사용자가 UI에 직접 입력 (서버 디스크 �
 
 ## 3. 설치·실행
 
-### 3.1 키·CLI 없이 30초 시연 (재현 보장)
-
-```bash
-git clone <REPO_URL> agora
-cd agora
-npm install
-AGORA_FAKE=1 npm run dev
-```
-
-http://localhost:3000 접속 → 좌패널 AI 2개 활성화(키 비워둬도 됨) → 토론 주제 선택 → 세션 시작. 모든 어댑터가 fake echo로 강제되어 **API 키·CLI 인증 없이 UI·오케스트레이터·인터럽트·요약·Export 흐름을 그대로 검증**할 수 있다. 채점 reproduce용 1순위 경로.
-
-### 3.2 본편 시연 (실어댑터)
-
 ```bash
 git clone <REPO_URL> agora
 cd agora
@@ -89,10 +76,6 @@ GEMINI_API_KEY=
 ```
 
 > ⚠️ `.env.local`은 절대 커밋하지 않는다. `.gitignore`에 박제됨.
-
-특수 옵션:
-
-- `AGORA_FAKE=1 npm run dev` — 모든 어댑터를 fake echo로 강제 (UI/오케스트레이터 시연용)
 
 ---
 

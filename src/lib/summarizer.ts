@@ -209,8 +209,6 @@ async function callSummarizer(
 }
 
 export async function runFinalArtifact(state: SessionState): Promise<void> {
-  // AGORA_FAKE 백업 시연에서는 어댑터가 fake echo이므로 산출물도 silent skip.
-  if (process.env.AGORA_FAKE === "1") return;
   const spec = findSpec(state);
   if (!spec) return;
   const transcript = state.transcript.snapshot();

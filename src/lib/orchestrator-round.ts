@@ -53,6 +53,10 @@ async function speakOnce(
   state: SessionState,
   speaker: AgentAdapter,
 ): Promise<boolean> {
+  // STOP 시점에 다음 발언자가 막 호출되려는 race 차단.
+  // sessionAbort fire 후에는 speak() 호출 자체를 시작하지 않는다.
+  if (state.sessionAbort.signal.aborted) return false;
+  if (state.roundAbort.signal.aborted) return false;
   const signal = anySignal([
     state.roundAbort.signal,
     state.sessionAbort.signal,

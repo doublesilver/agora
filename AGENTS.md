@@ -134,7 +134,6 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
   - **API 모드**: SDK 단발 호출 (Anthropic `messages.create` / OpenAI `chat.completions.create` / GoogleGenAI `generateContent`). 타임아웃 45s + AbortController. `state.sessionAbort.signal`과 합성되어 STOP 시 즉시 끊긴다.
   - **CLI 모드**: 1st-party CLI를 `runCliOneshot`(stdout 통째 collect)로 한 번 spawn. 시그니처는 `claude -p "<prompt>"` / `codex exec --skip-git-repo-check --sandbox read-only "<prompt>"` / `gemini -p "<prompt>" -y -m gemini-2.5-flash`. 타임아웃 90s (cold-start 25~40s 흡수).
 - **Export 합치기**: `transcriptToMarkdown`이 `eventLog`에서 가장 최근 `final_artifact`를 찾아 transcript 뒤에 append. JSONL 원본을 보지 않는 채점자도 markdown 한 개로 결론까지 도달.
-- **AGORA_FAKE=1 모드**: 어댑터가 fake echo이므로 산출물도 silent skip — 백업 시연 일관성 유지.
 
 ## UI/UX 설계
 
