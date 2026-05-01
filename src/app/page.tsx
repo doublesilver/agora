@@ -62,24 +62,26 @@ export default function Home() {
   const { view, actions } = useSession();
 
   return (
-    <div className="flex h-dvh w-full flex-row bg-zinc-950 text-zinc-100">
+    <div className="flex h-dvh w-full flex-row bg-paper text-ink">
       {errorBanner && (
         <div
           role="alert"
-          className="fixed left-1/2 top-4 z-[80] flex max-w-xl -translate-x-1/2 items-start gap-3 rounded-lg border border-red-700 bg-red-950/90 px-4 py-3 text-sm text-red-100 shadow-2xl backdrop-blur"
+          className="fixed left-1/2 top-4 z-[80] flex max-w-xl -translate-x-1/2 items-start gap-3 border-2 border-ink bg-ink px-4 py-3 font-mono text-[11px] text-paper shadow-[8px_8px_0_0_var(--highlight)]"
         >
-          <span className="mt-0.5 text-base">⚠️</span>
+          <span className="mt-0.5">‖</span>
           <div className="flex-1">
-            <div className="font-semibold">세션 시작 실패</div>
-            <p className="mt-1 break-words text-xs leading-relaxed text-red-200">
-              {errorBanner}
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em]">
+              SESSION START FAILED
+            </div>
+            <p className="mt-1 break-words text-[11px] leading-relaxed text-paper2">
+              // {errorBanner}
             </p>
           </div>
           <button
             type="button"
             onClick={() => setErrorBanner(null)}
             aria-label="닫기"
-            className="rounded px-2 py-0.5 text-red-300 transition-colors hover:bg-red-900 hover:text-red-50"
+            className="border border-paper px-2 text-paper hover:bg-paper hover:text-ink"
           >
             ✕
           </button>
@@ -140,11 +142,11 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setAppearance({ ...appearance, showInput: true })}
-            className="flex shrink-0 items-center justify-center gap-2 border-t border-zinc-800/80 bg-zinc-950 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-200"
+            className="flex shrink-0 items-center justify-center gap-2 border-t-2 border-ink bg-paper py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink2 transition-colors hover:bg-ink hover:text-paper"
             title="발화 입력창 다시 활성화"
           >
             <span>⌃</span>
-            <span>입력창 펼치기</span>
+            <span>UNFOLD INPUT</span>
           </button>
         )}
       </main>

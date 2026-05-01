@@ -1,16 +1,24 @@
-/* ActivityLog — 우측 사이드패널. 메타 이벤트 라이브 피드 (token 제외, 최근 30개).
- * JSONL 원본이 UI에 노출되지 않으니 채점자가 오케스트레이션을 시각적으로 확인하는 채널. */
+/* ActivityLog — Forum terminal log (시안 C 적용).
+ * 우측 사이드 — 메타 이벤트 라이브 피드. 클릭 시 발화로 점프. */
 "use client";
 
 import { useEffect, useRef } from "react";
 import type { ActivityEntry, SessionView } from "@/lib/client/types";
 
 const TONE_CLASS: Record<ActivityEntry["tone"], string> = {
-  info: "text-zinc-300",
-  warn: "text-amber-300",
-  error: "text-red-400",
-  pass: "text-zinc-500",
-  system: "text-emerald-300",
+  info: "text-ink",
+  warn: "text-ink",
+  error: "text-paper bg-ink",
+  pass: "text-ink2",
+  system: "text-ink",
+};
+
+const TONE_PREFIX: Record<ActivityEntry["tone"], string> = {
+  info: "·",
+  warn: "!",
+  error: "‖",
+  pass: "✓",
+  system: ">",
 };
 
 interface Props {
@@ -22,18 +30,15 @@ function formatTime(ts: number): string {
   return d.toLocaleTimeString("ko-KR", { hour12: false });
 }
 
-/** 발화 단위 entry 클릭 시 ChatView Bubble로 스크롤. data-turn + data-agent
- * 매칭. 같은 (turn, agentId)에 streaming bubble + 완료 bubble이 동시 존재할
- * 가능성이 있어 마지막 element를 우선 선택. */
 function jumpToBubble(turn: number, agentId: string): void {
   const matches = document.querySelectorAll<HTMLElement>(
     `article[data-turn="${turn}"][data-agent="${agentId}"]`,
   );
   const target = matches[matches.length - 1];
   target?.scrollIntoView({ behavior: "smooth", block: "center" });
-  target?.classList.add("ring-2", "ring-amber-400/60", "rounded-md");
+  target?.classList.add("ring-2", "ring-ink");
   setTimeout(() => {
-    target?.classList.remove("ring-2", "ring-amber-400/60", "rounded-md");
+    target?.classList.remove("ring-2", "ring-ink");
   }, 1400);
 }
 
@@ -55,12 +60,12 @@ export function ActivityLog({ view }: Props) {
   }
 
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col border-l border-zinc-800 bg-zinc-950 text-xs text-zinc-300">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
-        <h2 className="font-medium uppercase tracking-wider text-zinc-400">
-          활동 로그
-        </h2>
-        <span className="text-[10px] text-zinc-500">
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-l-2 border-ink bg-paper font-mono text-[11px] text-ink">
+      <header className="flex items-center justify-between border-b-2 border-ink bg-ink px-3 py-1.5 text-paper">
+        <span className="text-[10px] font-bold uppercase tracking-[0.22em]">
+          $ ACTIVITY.LOG
+        </span>
+        <span className="text-[9px] uppercase tracking-[0.18em] text-paper2">
           {view.activityLog.length}/30
         </span>
       </header>
@@ -70,32 +75,35 @@ export function ActivityLog({ view }: Props) {
         role="log"
         aria-live="polite"
         aria-label="실시간 활동 로그"
-        className="flex-1 overflow-y-auto px-3 py-2"
+        className="flex-1 overflow-y-auto px-2 py-2"
       >
         {view.activityLog.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center text-zinc-600">
-            <div className="text-2xl">📡</div>
-            <p className="text-[11px]">세션 시작 시 이벤트가 흐릅니다</p>
-            <p className="text-[10px] text-zinc-700">
-              발언·PASS·timeout·usage·사용자 개입 등 메타 활동이
-              <br />
-              실시간 라이브 피드로 기록됩니다.
-            </p>
+          <div className="flex flex-col items-start gap-1 py-4 text-[10px] uppercase tracking-[0.18em] text-ink3">
+            <span>// AWAITING SESSION</span>
+            <span>// EVENTS APPEAR HERE</span>
           </div>
         ) : (
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-col gap-0.5">
             {view.activityLog.map((entry) => {
               const clickable = entry.jumpTo !== undefined;
               const inner = (
                 <>
-                  <span className="shrink-0 font-mono text-[10px] text-zinc-600">
+                  <span className="shrink-0 text-[9px] uppercase tracking-[0.14em] text-ink3">
                     {formatTime(entry.ts)}
                   </span>
-                  <span className={TONE_CLASS[entry.tone]}>{entry.text}</span>
+                  <span
+                    className={`shrink-0 px-1 ${TONE_CLASS[entry.tone]}`}
+                    aria-hidden="true"
+                  >
+                    {TONE_PREFIX[entry.tone]}
+                  </span>
+                  <span className={`break-words ${TONE_CLASS[entry.tone]}`}>
+                    {entry.text}
+                  </span>
                   {clickable && (
                     <span
                       aria-hidden="true"
-                      className="ml-auto shrink-0 font-mono text-[9px] text-zinc-700"
+                      className="ml-auto shrink-0 text-[9px] text-ink3"
                     >
                       ↗
                     </span>
@@ -110,13 +118,13 @@ export function ActivityLog({ view }: Props) {
                       onClick={() =>
                         jumpToBubble(entry.jumpTo!.turn, entry.jumpTo!.agentId)
                       }
-                      className="flex w-full items-start gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-zinc-900"
+                      className="flex w-full items-start gap-1.5 border border-transparent px-1 py-0.5 text-left hover:border-ink hover:bg-paper2"
                       title="해당 발화로 이동"
                     >
                       {inner}
                     </button>
                   ) : (
-                    <div className="flex items-start gap-2 px-1 py-0.5">
+                    <div className="flex items-start gap-1.5 px-1 py-0.5">
                       {inner}
                     </div>
                   )}

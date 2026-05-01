@@ -1,16 +1,28 @@
-/* LeftPanel — 본질 컨트롤만 노출 (wordmark · 토론 주제 · 세션 시작 ·
- * 진행 컨트롤 · 종료 카드 · 좌하단 ⚙ 설정 트리거).
- * 인증·역할 메모·요약 담당·참고 문서·import/export 등은 SettingsModal로 이전. */
+/* LeftPanel — Brutalist Forum 사이드 (시안 C 적용).
+ * 좌측 모노 톤 컨트롤: status · roster summary · 토론 주제 · 시작 · 컨트롤 ·
+ * ⚙ 설정 footer. */
 "use client";
 
 import { useEffect, useState } from "react";
 import type { AgentConfig, SessionView } from "@/lib/client/types";
 import type { AgentId } from "@/lib/agents/types";
 
-const AGENT_LABEL_SHORT: Record<AgentId, string> = {
+const LABEL: Record<AgentId, string> = {
   claude: "Claude",
   codex: "Codex",
   gemini: "Gemini",
+};
+
+const INITIAL: Record<AgentId, string> = {
+  claude: "C",
+  codex: "X",
+  gemini: "G",
+};
+
+const ACCENT: Record<AgentId, string> = {
+  claude: "#C84A2C",
+  codex: "#2D7A4F",
+  gemini: "#3F6CB6",
 };
 
 const DEMO_PRESETS: { label: string; text: string }[] = [
@@ -58,7 +70,6 @@ export function LeftPanel(props: Props) {
   const [cliStatus, setCliStatus] = useState<CliStatus>(null);
 
   useEffect(() => {
-    // 좌패널 칩 요약에서 CLI 가용성 표시용. 페이지 마운트 시 1회.
     fetch("/api/cli-status")
       .then((r) => r.json())
       .then((d) => setCliStatus(d as CliStatus))
@@ -74,42 +85,37 @@ export function LeftPanel(props: Props) {
   const canStart = isSetup && enabledCount >= 2 && userPrompt.trim().length > 0;
 
   return (
-    <aside className="flex h-full w-[420px] shrink-0 flex-col border-r border-zinc-800 bg-zinc-950 text-sm text-zinc-200">
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <header className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold tracking-tight">Agora</h1>
-          <span
-            tabIndex={-1}
-            aria-label={`현재 상태: ${view.status}`}
-            className="cursor-default select-none rounded bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-400"
-          >
-            {view.status}
-          </span>
-        </header>
+    <aside className="flex h-full w-[360px] shrink-0 flex-col border-r-2 border-ink bg-paper font-mono text-[12px] text-ink">
+      {/* Top utility bar */}
+      <div className="flex items-center justify-between border-b border-ink px-3 py-1.5 text-[9px] uppercase tracking-[0.18em] text-ink2">
+        <span>// SIDEBAR</span>
+        <span className="bf-highlight px-1 text-ink">{view.status}</span>
+      </div>
 
-        <AgentsSummaryRow configs={configs} cliStatus={cliStatus} />
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+        <RosterSummary configs={configs} cliStatus={cliStatus} />
 
         {!isSetup && props.summarizerId && (
-          <p className="rounded bg-zinc-900 px-2 py-1 text-[11px] text-zinc-500 ring-1 ring-zinc-800">
-            📝 결과 정리:{" "}
-            <span className="text-zinc-300">
-              {AGENT_LABEL_SHORT[props.summarizerId]}
+          <div className="border border-ink bg-paper2 px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-ink2">
+            // SUMMARIZER →{" "}
+            <span className="font-bold text-ink">
+              {LABEL[props.summarizerId]}
             </span>
-          </p>
+          </div>
         )}
 
         {isSetup && (
           <section className="flex flex-col gap-2">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-              토론 주제
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink2">
+              / TOPIC
             </h2>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {DEMO_PRESETS.map((p) => (
                 <button
                   key={p.label}
                   type="button"
                   onClick={() => setUserPrompt(p.text)}
-                  className="rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                  className="border border-ink bg-paper px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-ink2 hover:bg-ink hover:text-paper"
                 >
                   {p.label}
                 </button>
@@ -131,15 +137,16 @@ export function LeftPanel(props: Props) {
               aria-label="토론 주제"
               placeholder={
                 canStart
-                  ? "Enter로 시작 · Shift+Enter 줄바꿈"
+                  ? "↵ START · ⇧↵ NEWLINE"
                   : enabledCount < 2
-                    ? "활성 AI 2개 + 토론 주제 입력 필요"
-                    : "토론 주제를 입력하세요 · Shift+Enter 줄바꿈"
+                    ? "// ACTIVE_AGENTS<2 — set in ⚙"
+                    : "// 토론 주제를 한 줄로"
               }
-              className="h-20 resize-none rounded border border-zinc-800 bg-zinc-900 p-2 text-sm"
+              className="h-20 resize-none border border-ink bg-paper p-2 text-[12px] leading-relaxed text-ink outline-none placeholder:text-ink3"
             />
             <button
               type="button"
+              data-shortcut-target="start-session"
               disabled={!canStart}
               onClick={() => props.onStart(userPrompt)}
               title={
@@ -149,13 +156,13 @@ export function LeftPanel(props: Props) {
                     ? "AI 2개 이상 활성화 필요"
                     : "토론 주제 입력 필요"
               }
-              className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:opacity-60 disabled:shadow-none"
+              className="border-2 border-ink bg-ink px-3 py-2 text-[12px] font-bold uppercase tracking-[0.2em] text-paper transition-colors hover:bg-paper hover:text-ink disabled:cursor-not-allowed disabled:bg-paper2 disabled:text-ink3"
             >
-              세션 시작
+              ▶ START SESSION
             </button>
             {enabledCount < 2 && (
-              <p className="text-[11px] text-zinc-500">
-                AI를 2개 이상 활성화해주세요. 좌하단 ⚙ 설정.
+              <p className="text-[10px] uppercase tracking-[0.16em] text-ink3">
+                // ACTIVATE ≥2 AGENTS via ⚙ SETTINGS
               </p>
             )}
           </section>
@@ -163,58 +170,60 @@ export function LeftPanel(props: Props) {
 
         {isRunning && (
           <section className="flex flex-col gap-2">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-              컨트롤
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink2">
+              / CONTROL
             </h2>
             {view.status !== "paused" ? (
               <button
                 onClick={props.onPause}
-                className="rounded bg-zinc-800 px-3 py-2 text-sm hover:bg-zinc-700"
+                className="border border-ink bg-paper px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-ink hover:bg-ink hover:text-paper"
               >
-                ⏸ 일시정지
+                ‖ PAUSE
               </button>
             ) : (
               <button
                 onClick={props.onResume}
-                className="rounded bg-green-700 px-3 py-2 text-sm hover:bg-green-600"
+                className="border-2 border-ink bg-highlight px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-ink hover:bg-ink hover:text-paper"
               >
-                ▶ 재개
+                ▶ RESUME
               </button>
             )}
             <button
               onClick={props.onStop}
-              className="rounded bg-red-800 px-3 py-2 text-sm hover:bg-red-700"
+              className="border-2 border-ink bg-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-paper hover:bg-paper hover:text-ink"
             >
-              ⏹ 종료
+              ■ STOP SESSION
             </button>
           </section>
         )}
 
         {view.status === "stopped" && (
-          <section className="flex flex-col gap-3">
+          <section className="flex flex-col gap-2">
             <SessionSummaryCard view={view} />
             <button
               onClick={props.onReset}
-              className="rounded bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-500"
+              className="border-2 border-ink bg-paper px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-ink hover:bg-ink hover:text-paper"
             >
-              🆕 새 세션 시작
+              ⟳ NEW SESSION
             </button>
           </section>
         )}
       </div>
 
-      <footer className="shrink-0 border-t border-zinc-800/80 p-3">
+      <footer className="shrink-0 border-t-2 border-ink p-2">
         <button
           type="button"
           onClick={props.onOpenSettings}
           aria-label="설정 열기"
           title="설정 (AI 에이전트, 결과 정리, 참고 문서, 외관, 한도, 백업)"
-          className="flex w-full items-center gap-3 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-50"
+          className="flex w-full items-center justify-between border border-ink bg-paper px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-ink hover:bg-ink hover:text-paper"
         >
-          <span className="text-lg">⚙</span>
-          <span className="flex-1 text-left font-medium">설정</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            {enabledCount}/3 active
+          <span className="flex items-center gap-2">
+            <span>⚙</span>
+            <span>SETTINGS</span>
+          </span>
+          <span className="text-[9px] uppercase tracking-[0.2em] opacity-70">
+            {enabledCount}/3 ACTIVE
           </span>
         </button>
       </footer>
@@ -223,71 +232,71 @@ export function LeftPanel(props: Props) {
 }
 
 const END_REASON_LABEL: Record<string, string> = {
-  user_stop: "사용자 STOP",
-  max_turns: "최대 턴 도달",
-  budget_exceeded: "토큰 예산 도달",
-  time_exceeded: "시간 캡 도달",
+  user_stop: "USER STOP",
+  max_turns: "MAX TURNS",
+  budget_exceeded: "BUDGET",
+  time_exceeded: "TIME CAP",
 };
 
 function SessionSummaryCard({ view }: { view: SessionView }) {
   const agentMsgs = view.messages.filter((m) => m.role !== "user");
   const userMsgs = view.messages.filter((m) => m.role === "user");
-  const byAgent: Record<string, number> = {};
-  for (const m of agentMsgs) byAgent[m.role] = (byAgent[m.role] ?? 0) + 1;
-  const top = Object.entries(byAgent).sort((a, b) => b[1] - a[1])[0];
   const reason = view.endReason
-    ? (END_REASON_LABEL[view.endReason] ?? view.endReason)
+    ? (END_REASON_LABEL[view.endReason] ?? view.endReason.toUpperCase())
     : "—";
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <div className="text-sm font-medium text-zinc-100">✅ 세션 완료</div>
-      <p className="mt-1 text-[11px] text-zinc-400">
-        종료 사유: <span className="text-zinc-200">{reason}</span>
-      </p>
-      <ul className="mt-3 flex flex-col gap-1 text-[11px] text-zinc-400">
-        <li>
-          🌀 라운드 <span className="text-zinc-100">{view.turn}</span>
-        </li>
-        <li>
-          💬 발언 <span className="text-zinc-100">{agentMsgs.length}</span>건 ·
-          사용자 <span className="text-zinc-100">{userMsgs.length}</span>건
-        </li>
-        <li>
-          🎟 토큰{" "}
-          <span className="text-zinc-100">
-            {view.sessionTokens.toLocaleString()}
-          </span>
-        </li>
-        {top && (
-          <li>
-            🏆 최다 발언:{" "}
-            <span className="text-zinc-100">
-              {AGENT_LABEL_SHORT[top[0] as AgentId] ?? top[0]}
-            </span>{" "}
-            ({top[1]}회)
-          </li>
-        )}
-      </ul>
+    <div className="border-2 border-ink bg-paper2">
+      <div className="border-b border-ink px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-ink">
+        ✓ SESSION COMPLETE
+      </div>
+      <table className="w-full text-[11px]">
+        <tbody>
+          <tr className="border-b border-ink/30">
+            <th className="px-3 py-1 text-left text-ink2">END</th>
+            <td className="px-3 py-1 text-right font-bold tabular-nums text-ink">
+              {reason}
+            </td>
+          </tr>
+          <tr className="border-b border-ink/30">
+            <th className="px-3 py-1 text-left text-ink2">ROUNDS</th>
+            <td className="px-3 py-1 text-right font-bold tabular-nums text-ink">
+              {view.turn}
+            </td>
+          </tr>
+          <tr className="border-b border-ink/30">
+            <th className="px-3 py-1 text-left text-ink2">AGENT TURNS</th>
+            <td className="px-3 py-1 text-right font-bold tabular-nums text-ink">
+              {agentMsgs.length}
+            </td>
+          </tr>
+          <tr className="border-b border-ink/30">
+            <th className="px-3 py-1 text-left text-ink2">USER INTERRUPTS</th>
+            <td className="px-3 py-1 text-right font-bold tabular-nums text-ink">
+              {userMsgs.length}
+            </td>
+          </tr>
+          <tr>
+            <th className="px-3 py-1 text-left text-ink2">TOKENS</th>
+            <td className="px-3 py-1 text-right font-bold tabular-nums text-ink">
+              {view.sessionTokens.toLocaleString()}
+            </td>
+          </tr>
+        </tbody>
+      </table>
       {view.sessionId && (
         <a
           href={`/api/export?id=${view.sessionId}`}
-          className="mt-3 block rounded bg-zinc-800 px-3 py-2 text-center text-xs hover:bg-zinc-700"
+          className="block border-t border-ink bg-ink px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-paper hover:bg-paper hover:text-ink"
         >
-          📥 transcript markdown 다운로드
+          ↓ DOWNLOAD MARKDOWN
         </a>
       )}
     </div>
   );
 }
 
-const AGENT_TONE: Record<AgentId, string> = {
-  claude: "text-orange-300",
-  codex: "text-emerald-300",
-  gemini: "text-blue-300",
-};
-
-function AgentsSummaryRow({
+function RosterSummary({
   configs,
   cliStatus,
 }: {
@@ -295,57 +304,46 @@ function AgentsSummaryRow({
   cliStatus: CliStatus;
 }) {
   return (
-    <div className="flex flex-col divide-y divide-zinc-800 border border-zinc-800">
-      {configs.map((c) => {
-        const modeLabel = c.mode === "api" ? "API" : "CLI";
-        let statusDot = "bg-zinc-700";
-        let statusLabel = "off";
-        if (c.enabled) {
-          if (c.mode === "api") {
-            const ready = c.apiKey.trim().length > 0;
-            statusDot = ready ? "bg-amber-400" : "bg-zinc-600";
-            statusLabel = ready ? "ready" : "no key";
-          } else {
-            const check = cliStatus?.[c.id];
-            if (check === undefined) {
-              statusDot = "bg-zinc-600";
-              statusLabel = "—";
-            } else if (check.found) {
-              statusDot = "bg-emerald-400";
-              statusLabel = "live";
+    <div className="border border-ink bg-paper">
+      <div className="border-b border-ink bg-ink px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-paper">
+        $ ROSTER
+      </div>
+      <div className="divide-y divide-ink/30">
+        {configs.map((c) => {
+          let statusLabel = "OFF";
+          if (c.enabled) {
+            if (c.mode === "api") {
+              statusLabel = c.apiKey.trim().length > 0 ? "READY" : "NO KEY";
             } else {
-              statusDot = "bg-red-400";
-              statusLabel = "miss";
+              const check = cliStatus?.[c.id];
+              statusLabel =
+                check === undefined ? "—" : check.found ? "LIVE" : "MISS";
             }
           }
-        }
-        return (
-          <div
-            key={c.id}
-            className={`flex items-center gap-2.5 px-2.5 py-1.5 ${
-              c.enabled ? "" : "opacity-50"
-            }`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${statusDot}`}
-              aria-hidden="true"
-            />
-            <span
-              className={`flex-1 font-mono text-[12px] tracking-tight ${
-                c.enabled ? AGENT_TONE[c.id] : "text-zinc-500"
+          return (
+            <div
+              key={c.id}
+              className={`flex items-center justify-between px-2.5 py-1 text-[11px] ${
+                c.enabled ? "" : "opacity-50"
               }`}
             >
-              {AGENT_LABEL_SHORT[c.id]}
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-600">
-              {modeLabel}
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-500">
-              {statusLabel}
-            </span>
-          </div>
-        );
-      })}
+              <span>
+                <span
+                  className="font-bold"
+                  style={{ color: c.enabled ? ACCENT[c.id] : undefined }}
+                >
+                  [{INITIAL[c.id]}]
+                </span>{" "}
+                <span className="font-bold">{LABEL[c.id]}</span>{" "}
+                <span className="text-ink3">@{c.mode}</span>
+              </span>
+              <span className="text-[9px] uppercase tracking-[0.18em] text-ink2">
+                {statusLabel}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

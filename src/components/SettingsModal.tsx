@@ -365,16 +365,16 @@ export function SettingsModal({
         aria-modal="true"
         aria-labelledby="settings-modal-title"
         onClick={(e) => e.stopPropagation()}
-        className="flex h-[85vh] w-full max-w-4xl overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl"
+        className="flex h-[85vh] w-full max-w-4xl overflow-hidden rounded-xl border border-ink bg-paper shadow-2xl"
       >
         <nav
           aria-label="설정 카테고리"
-          className="flex w-56 shrink-0 flex-col gap-0.5 border-r border-zinc-800 bg-zinc-950 p-3 text-sm"
+          className="flex w-56 shrink-0 flex-col gap-0.5 border-r border-ink bg-paper p-3 text-sm"
         >
           <div className="mb-3 flex items-center justify-between px-1">
             <h2
               id="settings-modal-title"
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink0"
             >
               Settings
             </h2>
@@ -389,24 +389,24 @@ export function SettingsModal({
                 aria-current={selected ? "page" : undefined}
                 className={`flex flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left text-[13px] transition-colors ${
                   selected
-                    ? "bg-zinc-800/80 text-zinc-50"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+                    ? "bg-paper-deep text-ink"
+                    : "text-ink2 hover:bg-paper2 hover:text-ink"
                 }`}
               >
                 <span className="font-medium">{c.label}</span>
-                <span className="text-[10px] text-zinc-600">{c.hint}</span>
+                <span className="text-[10px] text-ink3">{c.hint}</span>
               </button>
             );
           })}
         </nav>
 
         <div className="flex flex-1 flex-col">
-          <header className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-5 py-3">
+          <header className="flex shrink-0 items-center justify-between border-b border-ink px-5 py-3">
             <div className="flex items-baseline gap-3">
-              <span className="text-base font-semibold tracking-tight text-zinc-100">
+              <span className="text-base font-semibold tracking-tight text-ink">
                 {CATEGORIES.find((c) => c.id === active)?.label}
               </span>
-              <span className="text-[11px] text-zinc-500">
+              <span className="text-[11px] text-ink0">
                 {CATEGORIES.find((c) => c.id === active)?.hint}
               </span>
             </div>
@@ -414,7 +414,7 @@ export function SettingsModal({
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="rounded px-2 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+              className="rounded px-2 py-0.5 text-ink2 transition-colors hover:bg-paper-deep hover:text-ink"
             >
               ✕
             </button>
@@ -498,14 +498,14 @@ function AgentsPane({
   return (
     <section className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-[11px] text-ink0">
           진행 중에는 역할 메모만 핫스왑 가능.
         </p>
         <button
           type="button"
           onClick={onRefreshCli}
           disabled={cliLoading}
-          className="text-[11px] text-zinc-400 underline disabled:opacity-50 hover:text-zinc-200"
+          className="text-[11px] text-ink2 underline disabled:opacity-50 hover:text-ink"
         >
           {cliLoading ? "확인 중…" : "↻ CLI 새로고침"}
         </button>
@@ -513,7 +513,7 @@ function AgentsPane({
       {configs.map((c) => (
         <div
           key={c.id}
-          className="flex flex-col gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2"
+          className="flex flex-col gap-1.5 rounded-md border border-ink bg-paper2 px-3 py-2"
         >
           <label className="flex items-center gap-2">
             <input
@@ -525,7 +525,7 @@ function AgentsPane({
             <span className={`font-medium ${AGENT_ACCENT[c.id]}`}>
               {AGENT_LABELS[c.id]}
             </span>
-            <span className="text-[10px] text-zinc-500">
+            <span className="text-[10px] text-ink0">
               {AGENT_PERSONA[c.id]}
             </span>
             <select
@@ -534,7 +534,7 @@ function AgentsPane({
               onChange={(e) =>
                 onPatch(c.id, { mode: e.target.value as AgentConfig["mode"] })
               }
-              className="ml-auto rounded bg-zinc-800 px-2 py-0.5 text-xs"
+              className="ml-auto rounded bg-paper-deep px-2 py-0.5 text-xs"
               aria-label={`${AGENT_LABELS[c.id]} 모드`}
             >
               <option value="api">API</option>
@@ -550,7 +550,7 @@ function AgentsPane({
                 disabled={!isSetup}
                 value={c.apiKey}
                 onChange={(e) => onPatch(c.id, { apiKey: e.target.value })}
-                className="rounded bg-zinc-800 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded bg-paper-deep px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
               />
               <ApiKeyVerify
                 state={authStates[c.id]}
@@ -563,7 +563,7 @@ function AgentsPane({
           {c.mode === "cli" && (
             <CliStatusBlock check={cliStatus?.[c.id]} loading={cliLoading} />
           )}
-          <details className="text-[11px] text-zinc-400">
+          <details className="text-[11px] text-ink2">
             <summary className="cursor-pointer select-none">
               역할 메모 (시스템 프롬프트)
             </summary>
@@ -574,7 +574,7 @@ function AgentsPane({
                 onPatch(c.id, { systemPrompt: e.target.value });
                 if (isRunning) onSetSystemPrompt(c.id, e.target.value);
               }}
-              className="mt-1 h-24 w-full resize-none rounded bg-zinc-800 p-2 text-xs text-zinc-200"
+              className="mt-1 h-24 w-full resize-none rounded bg-paper-deep p-2 text-xs text-ink"
             />
             <button
               type="button"
@@ -582,7 +582,7 @@ function AgentsPane({
                 onPatch(c.id, { systemPrompt: ROLE_SEEDS[c.id] });
                 if (isRunning) onSetSystemPrompt(c.id, ROLE_SEEDS[c.id]);
               }}
-              className="mt-1 text-[11px] text-zinc-400 underline hover:text-zinc-200"
+              className="mt-1 text-[11px] text-ink2 underline hover:text-ink"
             >
               ↺ 기본값으로 되돌리기
             </button>
@@ -590,8 +590,8 @@ function AgentsPane({
         </div>
       ))}
 
-      <div className="mt-1 flex flex-col gap-2 rounded-md border border-zinc-800 bg-zinc-900/30 px-3 py-2.5">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+      <div className="mt-1 flex flex-col gap-2 rounded-md border border-ink bg-paper2/40 px-3 py-2.5">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink0">
           📝 결과 정리 담당
         </h3>
         <SummarizerPane
@@ -633,7 +633,7 @@ function ApiKeyVerify({
               : "키 검증"
         }
         aria-label={!hasKey ? "API 키 입력 후 검증 가능" : "API 키 검증"}
-        className="self-start rounded bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-300 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+        className="self-start rounded bg-paper-deep px-2 py-0.5 text-[11px] text-ink hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
       >
         🔍 키 검증
       </button>
@@ -696,11 +696,11 @@ function CliStatusBlock({
   loading: boolean;
 }) {
   if (loading) {
-    return <p className="text-[11px] text-zinc-500">CLI 상태 확인 중…</p>;
+    return <p className="text-[11px] text-ink0">CLI 상태 확인 중…</p>;
   }
   if (!check) {
     return (
-      <p className="text-[11px] text-zinc-500">
+      <p className="text-[11px] text-ink0">
         CLI 상태를 알 수 없음. 위의 ↻ 버튼으로 새로고침.
       </p>
     );
@@ -769,12 +769,12 @@ function SummarizerPane({
 
   return (
     <section className="flex flex-col gap-2">
-      <p className="text-[11px] text-zinc-500">
+      <p className="text-[11px] text-ink0">
         종료 시 결론·논점·미해결·액션 4섹션 산출물. 미선택 시 첫 활성 어댑터로
         자동.
       </p>
       {candidates.length === 0 ? (
-        <p className="rounded border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-[11px] text-zinc-500">
+        <p className="rounded border border-ink bg-paper2 px-3 py-2 text-[11px] text-ink0">
           API 키 인증 또는 CLI 설치된 활성 에이전트 필요.
         </p>
       ) : (
@@ -794,7 +794,7 @@ function SummarizerPane({
                 className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] ring-1 ${
                   selected
                     ? "bg-blue-700/40 text-blue-100 ring-blue-500"
-                    : "bg-zinc-900 text-zinc-300 ring-zinc-800 hover:ring-zinc-600"
+                    : "bg-paper2 text-ink ring-ink hover:ring-ink"
                 }`}
               >
                 <span>{selected ? "🟦" : "⬜"}</span>
@@ -806,7 +806,7 @@ function SummarizerPane({
           })}
         </div>
       )}
-      <p className="text-[10px] text-zinc-600">
+      <p className="text-[10px] text-ink3">
         API 45s · CLI 90s 단발 호출 · 자세한 정책은 AGENTS.md §A9.
       </p>
     </section>
@@ -829,18 +829,18 @@ function ReferencePane({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <p className="text-[12px] text-zinc-400">
+        <p className="text-[12px] text-ink2">
           모든 에이전트의 시스템 프롬프트 앞에 prepend됩니다. 진행 중에는 변경
           불가 — 새 세션부터 적용.
         </p>
-        <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+        <div className="flex items-center gap-2 text-[10px] text-ink0">
           {charCount > 0 && <span>{charCount.toLocaleString()}자</span>}
           {charCount > 0 && (
             <button
               type="button"
               onClick={() => setReferenceDoc("")}
               disabled={!isSetup}
-              className="text-zinc-500 underline hover:text-zinc-300 disabled:opacity-50"
+              className="text-ink0 underline hover:text-ink disabled:opacity-50"
             >
               비우기
             </button>
@@ -855,9 +855,9 @@ function ReferencePane({
         placeholder={
           "토론 시작 전 모든 AI에게 함께 보여줄 문서. 직접 타이핑·붙여넣기 가능.\n\n예: 게임 기획서·요구사항·기존 시스템 설명 등."
         }
-        className="h-48 resize-y rounded border border-zinc-800 bg-zinc-900 p-2 text-xs leading-snug disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-48 resize-y rounded border border-ink bg-paper2 p-2 text-xs leading-snug disabled:cursor-not-allowed disabled:opacity-60"
       />
-      <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded bg-zinc-800 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-700">
+      <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded bg-paper-deep px-2 py-1 text-[11px] text-ink hover:bg-ink hover:text-paper">
         📎 .md / .txt 파일 첨부
         <input
           type="file"
@@ -896,7 +896,7 @@ function AppearancePane({
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink0">
           폰트 크기
         </h3>
         <div className="flex gap-1.5">
@@ -910,25 +910,25 @@ function AppearancePane({
                 aria-pressed={selected}
                 className={`flex flex-col items-center gap-0.5 rounded-md px-3 py-2 ring-1 transition-colors ${
                   selected
-                    ? "bg-zinc-800 text-zinc-100 ring-zinc-600"
-                    : "bg-zinc-900 text-zinc-400 ring-zinc-800 hover:bg-zinc-900/80"
+                    ? "bg-paper-deep text-ink ring-ink"
+                    : "bg-paper2 text-ink2 ring-ink hover:bg-paper2/80"
                 }`}
               >
                 <span className="font-medium">{sz}</span>
-                <span className="text-[10px] text-zinc-500">
+                <span className="text-[10px] text-ink0">
                   {FONT_SIZE_PX[sz]}
                 </span>
               </button>
             );
           })}
         </div>
-        <p className="text-[10px] text-zinc-600">
+        <p className="text-[10px] text-ink3">
           한글 본문 가독성에 영향. localStorage에 영속.
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink0">
           메시지 밀도
         </h3>
         <div className="flex gap-1.5">
@@ -947,24 +947,24 @@ function AppearancePane({
                 aria-pressed={selected}
                 className={`flex flex-col items-start gap-0.5 rounded-md px-3 py-2 ring-1 transition-colors ${
                   selected
-                    ? "bg-zinc-800 text-zinc-100 ring-zinc-600"
-                    : "bg-zinc-900 text-zinc-400 ring-zinc-800 hover:bg-zinc-900/80"
+                    ? "bg-paper-deep text-ink ring-ink"
+                    : "bg-paper2 text-ink2 ring-ink hover:bg-paper2/80"
                 }`}
               >
                 <span className="font-medium">{d.label}</span>
-                <span className="text-[10px] text-zinc-500">{d.hint}</span>
+                <span className="text-[10px] text-ink0">{d.hint}</span>
               </button>
             );
           })}
         </div>
-        <p className="text-[10px] text-zinc-600">
+        <p className="text-[10px] text-ink3">
           채팅 메시지 사이 여백. compact가 더 많은 라운드를 한 화면에
           보여줍니다.
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink0">
           하단 발화 입력창
         </h3>
         <div className="flex gap-1.5">
@@ -983,17 +983,17 @@ function AppearancePane({
                 aria-pressed={selected}
                 className={`flex flex-col items-start gap-0.5 rounded-md px-3 py-2 ring-1 transition-colors ${
                   selected
-                    ? "bg-zinc-800 text-zinc-100 ring-zinc-600"
-                    : "bg-zinc-900 text-zinc-400 ring-zinc-800 hover:bg-zinc-900/80"
+                    ? "bg-paper-deep text-ink ring-ink"
+                    : "bg-paper2 text-ink2 ring-ink hover:bg-paper2/80"
                 }`}
               >
                 <span className="font-medium">{d.label}</span>
-                <span className="text-[10px] text-zinc-500">{d.hint}</span>
+                <span className="text-[10px] text-ink0">{d.hint}</span>
               </button>
             );
           })}
         </div>
-        <p className="text-[10px] text-zinc-600">
+        <p className="text-[10px] text-ink3">
           비활성 시 채팅 화면이 더 넓어집니다. 인터럽트가 필요하면 다시
           활성화하거나 좌측 컨트롤로 종료/일시정지.
         </p>
@@ -1019,10 +1019,10 @@ function BackupPane({
   const [status, setStatus] = useState<string | null>(null);
   return (
     <section className="flex flex-col gap-3">
-      <p className="text-[12px] leading-relaxed text-zinc-400">
+      <p className="text-[12px] leading-relaxed text-ink2">
         현재 설정(에이전트 활성·모드·역할 메모·참고 문서)을 JSON으로 저장하거나
         다른 환경에서 복원합니다.{" "}
-        <strong className="text-zinc-200">
+        <strong className="text-ink">
           API 키는 보안을 위해 export에 포함되지 않습니다.
         </strong>
       </p>
@@ -1033,11 +1033,11 @@ function BackupPane({
             exportConfig(configs, referenceDoc);
             setStatus("내보내기 완료 — 다운로드를 확인하세요.");
           }}
-          className="rounded bg-zinc-800 px-3 py-1.5 text-xs text-zinc-200 transition-colors hover:bg-zinc-700"
+          className="rounded bg-paper-deep px-3 py-1.5 text-xs text-ink transition-colors hover:bg-ink hover:text-paper"
         >
           💾 JSON 내보내기
         </button>
-        <label className="cursor-pointer rounded bg-zinc-800 px-3 py-1.5 text-xs text-zinc-200 transition-colors hover:bg-zinc-700">
+        <label className="cursor-pointer rounded bg-paper-deep px-3 py-1.5 text-xs text-ink transition-colors hover:bg-ink hover:text-paper">
           📂 JSON 가져오기
           <input
             type="file"
@@ -1068,7 +1068,7 @@ function BackupPane({
       </div>
       {status && (
         <p
-          className="rounded border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-[11px] text-zinc-300"
+          className="rounded border border-ink bg-paper2 px-3 py-2 text-[11px] text-ink"
           role="status"
         >
           {status}
@@ -1095,7 +1095,7 @@ function LimitsPane({
 
   return (
     <section className="flex flex-col gap-5">
-      <p className="text-[12px] leading-relaxed text-zinc-400">
+      <p className="text-[12px] leading-relaxed text-ink2">
         다음 세션부터 적용됩니다. 진행 중 세션에는 영향 없음. localStorage에
         영속.
       </p>
@@ -1111,10 +1111,10 @@ function LimitsPane({
             onChange={(e) =>
               onChange({ ...value, maxTurns: Number(e.target.value) || 0 })
             }
-            className="w-24 rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm tabular-nums"
+            className="w-24 rounded border border-ink bg-paper2 px-2 py-1 text-sm tabular-nums"
             aria-label="최대 턴 수"
           />
-          <span className="text-[11px] text-zinc-500">라운드</span>
+          <span className="text-[11px] text-ink0">라운드</span>
           <PresetChips
             options={turnsPreset}
             current={value.maxTurns}
@@ -1141,10 +1141,10 @@ function LimitsPane({
                 maxSessionTokens: Number(e.target.value) || 0,
               })
             }
-            className="w-32 rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm tabular-nums"
+            className="w-32 rounded border border-ink bg-paper2 px-2 py-1 text-sm tabular-nums"
             aria-label="토큰 예산"
           />
-          <span className="text-[11px] text-zinc-500">
+          <span className="text-[11px] text-ink0">
             ≈ {Math.round(value.maxSessionTokens / 1000)}k tokens
           </span>
         </div>
@@ -1174,10 +1174,10 @@ function LimitsPane({
                   Math.max(1, Number(e.target.value) || 1) * 60_000,
               })
             }
-            className="w-20 rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm tabular-nums"
+            className="w-20 rounded border border-ink bg-paper2 px-2 py-1 text-sm tabular-nums"
             aria-label="세션 시간 캡 (분)"
           />
-          <span className="text-[11px] text-zinc-500">분</span>
+          <span className="text-[11px] text-ink0">분</span>
           <PresetChips
             options={minutesPreset}
             current={minutes}
@@ -1198,46 +1198,46 @@ function LimitsPane({
             maxSessionDurationMs: MAX_SESSION_DURATION_MS,
           })
         }
-        className="self-start rounded bg-zinc-800 px-3 py-1.5 text-[11px] text-zinc-300 transition-colors hover:bg-zinc-700"
+        className="self-start rounded bg-paper-deep px-3 py-1.5 text-[11px] text-ink transition-colors hover:bg-ink hover:text-paper"
       >
         ↺ 기본값으로 되돌리기
       </button>
 
-      <details className="text-[11px] text-zinc-500">
-        <summary className="cursor-pointer select-none text-zinc-400 hover:text-zinc-200">
+      <details className="text-[11px] text-ink0">
+        <summary className="cursor-pointer select-none text-ink2 hover:text-ink">
           ⚙ 변경 불가 시스템 한도 (코드 상수)
         </summary>
         <table className="mt-2 w-full border-collapse text-[11px]">
           <tbody>
-            <tr className="border-b border-zinc-800/80">
-              <th className="py-1.5 text-left font-normal text-zinc-500">
+            <tr className="border-b border-ink/80">
+              <th className="py-1.5 text-left font-normal text-ink0">
                 첫 토큰 timeout
               </th>
-              <td className="py-1.5 text-right font-mono tabular-nums text-zinc-300">
+              <td className="py-1.5 text-right font-mono tabular-nums text-ink">
                 {AGENT_FIRST_TOKEN_TIMEOUT_MS / 1000} 초
               </td>
             </tr>
-            <tr className="border-b border-zinc-800/80">
-              <th className="py-1.5 text-left font-normal text-zinc-500">
+            <tr className="border-b border-ink/80">
+              <th className="py-1.5 text-left font-normal text-ink0">
                 연속 PASS 한도
               </th>
-              <td className="py-1.5 text-right font-mono tabular-nums text-zinc-300">
+              <td className="py-1.5 text-right font-mono tabular-nums text-ink">
                 {MAX_CONSECUTIVE_PASS} 라운드
               </td>
             </tr>
-            <tr className="border-b border-zinc-800/80">
-              <th className="py-1.5 text-left font-normal text-zinc-500">
+            <tr className="border-b border-ink/80">
+              <th className="py-1.5 text-left font-normal text-ink0">
                 어댑터 연속 에러 한도
               </th>
-              <td className="py-1.5 text-right font-mono tabular-nums text-zinc-300">
+              <td className="py-1.5 text-right font-mono tabular-nums text-ink">
                 {MAX_AGENT_ERROR_STREAK} 회
               </td>
             </tr>
           </tbody>
         </table>
-        <p className="mt-1 text-[10px] text-zinc-600">
+        <p className="mt-1 text-[10px] text-ink3">
           이 값들은 안정성/UX 보호용이라 사용자 변경에서 제외. 변경하려면{" "}
-          <code className="rounded bg-zinc-900 px-1 font-mono">
+          <code className="rounded bg-paper2 px-1 font-mono">
             src/lib/constants.ts
           </code>
           .
@@ -1258,11 +1258,11 @@ function LimitsField({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+      <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink0">
         {label}
       </h3>
       {children}
-      <p className="text-[10px] leading-relaxed text-zinc-600">{hint}</p>
+      <p className="text-[10px] leading-relaxed text-ink3">{hint}</p>
     </div>
   );
 }
@@ -1290,8 +1290,8 @@ function PresetChips<T extends number>({
             aria-pressed={active}
             className={`rounded-full px-2 py-0.5 font-mono text-[10px] ring-1 transition-colors ${
               active
-                ? "bg-zinc-700 text-zinc-50 ring-zinc-500"
-                : "bg-zinc-900 text-zinc-400 ring-zinc-800 hover:text-zinc-200"
+                ? "bg-zinc-700 text-ink ring-zinc-500"
+                : "bg-paper2 text-ink2 ring-ink hover:text-ink"
             }`}
           >
             {format(n)}
@@ -1307,8 +1307,8 @@ function PresetChips<T extends number>({
 
 function AboutPane() {
   return (
-    <section className="flex flex-col gap-3 text-[12px] leading-relaxed text-zinc-400">
-      <h3 className="font-semibold text-zinc-100">
+    <section className="flex flex-col gap-3 text-[12px] leading-relaxed text-ink2">
+      <h3 className="font-semibold text-ink">
         Agora · 사용자가 끼어들 수 있는 멀티 AI 토론 도구
       </h3>
       <p>
@@ -1319,12 +1319,12 @@ function AboutPane() {
       </p>
       <p>
         차별화 한 줄:{" "}
-        <strong className="text-zinc-200">
+        <strong className="text-ink">
           단순 다중 호출이 아니라 사용자가 토론에 끼어들 수 있는 도구
         </strong>
         .
       </p>
-      <ul className="ml-4 list-disc space-y-1 text-zinc-500">
+      <ul className="ml-4 list-disc space-y-1 text-ink0">
         <li>어댑터: Claude API/CLI · Codex API/CLI · Gemini API/CLI 6종</li>
         <li>개입: 즉시 인터럽트 · 큐 · Pause/Resume · Stop 4종</li>
         <li>
@@ -1332,7 +1332,7 @@ function AboutPane() {
         </li>
         <li>JSONL append-only 로거 + scrub-check 시크릿 검증</li>
       </ul>
-      <p className="text-[11px] text-zinc-600">
+      <p className="text-[11px] text-ink3">
         자세한 ADR + 구현은 저장소의 <code>AGENTS.md</code> +{" "}
         <code>README.md</code>
         참조.

@@ -1,4 +1,5 @@
-/* InterventionInput — 입력창 + 모드 토글 + 보내기 + 슬래시 커맨드. */
+/* InterventionInput — Forum 인터럽트 입력창 (시안 C 적용).
+ * "끼어들기"가 1급 동사. 모드(즉시/큐) 라디오 + 터미널 prompt + 액션 버튼. */
 "use client";
 
 import { useState } from "react";
@@ -58,14 +59,11 @@ export function InterventionInput({
     const t = text.trim();
     if (!t) return;
     setText("");
-
-    // 슬래시 커맨드 분기
     const cmd = matchCommand(t);
     if (cmd) {
       await runCommand(cmd);
       return;
     }
-
     if (mode === "interrupt") {
       setFlash(true);
       setTimeout(() => setFlash(false), 800);
@@ -95,90 +93,90 @@ export function InterventionInput({
     }
   }
 
+  const isInterrupt = mode === "interrupt";
+  const inputDisabled = view.status === "setup" || view.status === "stopped";
+
   return (
     <div
-      className={`relative flex shrink-0 flex-col bg-zinc-950 px-6 pb-3 pt-6 ${flash ? "animate-flash-amber" : ""}`}
+      className={`shrink-0 border-t-2 border-ink bg-paper ${flash ? "animate-flash-amber" : ""}`}
     >
-      {/* Folio tab — Sagmeister 풍 신문 가장자리 라벨 */}
-      <div className="absolute -top-3 left-6 bg-zinc-950 px-3">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-300">
-          Reader&apos;s Desk · 끼어들기
-        </span>
-      </div>
-      <div className="border-t-2 border-zinc-700 pt-4">
-        {showHelp && <SlashHelpCard onClose={() => setShowHelp(false)} />}
+      {showHelp && <SlashHelpCard onClose={() => setShowHelp(false)} />}
 
-        {/* Mode 라디오 + 보조 액션 */}
-        <div
-          role="group"
-          aria-label="메시지 개입 방식 선택"
-          className="mb-4 flex flex-wrap items-center gap-4"
+      {/* Mode + utility row */}
+      <div className="flex flex-wrap items-center gap-4 border-b border-ink px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink2">
+        <span className="text-ink3">// MODE</span>
+        <button
+          type="button"
+          aria-pressed={isInterrupt}
+          onClick={() => setMode("interrupt")}
+          className={`flex items-center gap-1.5 transition-colors ${
+            isInterrupt ? "text-ink" : "text-ink3 hover:text-ink2"
+          }`}
         >
-          <button
-            type="button"
-            aria-pressed={mode === "interrupt"}
-            onClick={() => setMode("interrupt")}
-            title="진행 중 발언을 즉시 끊고 사용자 메시지를 다음 라운드에 반영"
-            className={`flex items-center gap-1.5 transition-colors ${
-              mode === "interrupt"
-                ? "text-red-400"
-                : "text-zinc-500 hover:text-zinc-300"
-            }`}
+          <span className="text-[10px]">{isInterrupt ? "[●]" : "[ ]"}</span>
+          <span
+            className={`font-bold ${isInterrupt ? "bf-highlight px-1" : ""}`}
           >
-            <span className="text-[10px]">
-              {mode === "interrupt" ? "●" : "○"}
-            </span>
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em]">
-              Immediate · 즉시
-            </span>
-          </button>
-          <span className="text-zinc-700">/</span>
-          <button
-            type="button"
-            aria-pressed={mode === "queue"}
-            onClick={() => setMode("queue")}
-            title="현재 라운드는 그대로 두고 다음 라운드에 반영"
-            className={`flex items-center gap-1.5 transition-colors ${
-              mode === "queue"
-                ? "text-amber-400"
-                : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            <span className="text-[10px]">{mode === "queue" ? "●" : "○"}</span>
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em]">
-              Queue · 큐
-            </span>
-          </button>
-
-          <span className="ml-auto flex items-center gap-3">
-            <button
-              type="button"
-              disabled={view.status === "setup" || view.status === "stopped"}
-              onClick={() => onSend(SUMMARY_PROMPT, "queue")}
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-              title="다음 라운드에 자동 요약 요청"
-            >
-              Summarize
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowHelp(true)}
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:text-zinc-200"
-              title="슬래시 커맨드 안내"
-            >
-              / Commands
-            </button>
-            {view.status === "idle" && (
-              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-emerald-300">
-                User Turn
-              </span>
-            )}
+            ⚡ IMMEDIATE · 즉시
           </span>
-        </div>
+        </button>
+        <span className="text-ink3">/</span>
+        <button
+          type="button"
+          aria-pressed={!isInterrupt}
+          onClick={() => setMode("queue")}
+          className={`flex items-center gap-1.5 transition-colors ${
+            !isInterrupt ? "text-ink" : "text-ink3 hover:text-ink2"
+          }`}
+        >
+          <span className="text-[10px]">{!isInterrupt ? "[●]" : "[ ]"}</span>
+          <span
+            className={`font-bold ${!isInterrupt ? "bf-highlight px-1" : ""}`}
+          >
+            ⏎ QUEUE · 큐
+          </span>
+        </button>
 
-        {/* Reader's bar — double border-l + Serif italic placeholder */}
-        <div className="flex gap-3">
-          <div className="relative flex-1 border-l-[5px] border-double border-zinc-300/80 pl-4">
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            type="button"
+            disabled={inputDisabled}
+            onClick={() => onSend(SUMMARY_PROMPT, "queue")}
+            className="text-ink2 hover:text-ink disabled:opacity-40"
+          >
+            / SUMMARIZE
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="text-ink2 hover:text-ink"
+          >
+            / COMMANDS
+          </button>
+          {view.status === "idle" && (
+            <span className="bf-highlight px-1 text-ink">※ USER TURN</span>
+          )}
+        </div>
+      </div>
+
+      {/* Input row — terminal prompt */}
+      <div className="grid grid-cols-[120px_1fr_140px] divide-x divide-ink">
+        <div className="flex flex-col justify-center gap-1 px-3 py-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink3">
+            // ※ USER
+          </div>
+          <div className="font-mono text-[12px] font-bold uppercase tracking-[0.16em] text-ink">
+            R{view.turn} · {isInterrupt ? "FORCE" : "ENQUEUE"}
+          </div>
+          <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink3">
+            {isInterrupt ? "⌥+↵ to fire" : "↵ to enqueue"}
+          </div>
+        </div>
+        <div className="px-3 py-2">
+          <div className="flex items-start gap-2">
+            <span className="mt-1 font-mono text-[14px] font-bold text-ink">
+              &gt;&gt;
+            </span>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -193,47 +191,42 @@ export function InterventionInput({
                 }
               }}
               placeholder={
-                view.status === "setup"
-                  ? "세션 시작 후 메시지를 입력할 수 있어요"
-                  : view.status === "stopped"
-                    ? "세션이 종료되었습니다 — 좌측에서 새 세션을 시작하세요"
-                    : view.status === "idle"
-                      ? "AI들이 합의한 것 같아요. 다음 의견을 보태거나 종료하세요"
-                      : view.status === "paused"
-                        ? "일시정지 중 — 메시지는 큐에 쌓였다가 재개 시 반영"
-                        : "이 토론에 한 마디 — 당신의 차례입니다."
+                inputDisabled
+                  ? view.status === "stopped"
+                    ? "// SESSION ENDED — start a new one"
+                    : "// SESSION NOT STARTED"
+                  : isInterrupt
+                    ? "// 진행 중 발언을 즉시 끊고 INJECT — 예: '타겟 유저는 라이트 게이머다'"
+                    : "// 다음 라운드에 보낼 메시지 — 진행 중 발언은 그대로"
               }
               aria-label="토론 개입 메시지 입력"
-              disabled={view.status === "setup" || view.status === "stopped"}
-              style={{ fontFamily: '"Noto Serif KR", serif' }}
-              className="h-16 w-full resize-none bg-transparent text-base leading-relaxed text-zinc-100 outline-none placeholder:italic placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={inputDisabled}
+              className="h-14 w-full resize-none bg-transparent font-mono text-[13.5px] leading-relaxed text-ink outline-none placeholder:text-ink3 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
+        </div>
+        <div className="flex flex-col gap-1.5 px-3 py-2">
           <button
             type="button"
             disabled={disabled}
             onClick={send}
-            className={`self-end border px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-              mode === "interrupt"
-                ? "border-red-300 text-red-200 hover:bg-red-200 hover:text-red-900"
-                : "border-amber-300 text-amber-200 hover:bg-amber-200 hover:text-amber-900"
+            className={`flex-1 border-2 border-ink font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              isInterrupt
+                ? "bg-ink text-paper hover:bg-paper hover:text-ink"
+                : "bg-paper text-ink hover:bg-ink hover:text-paper"
             }`}
           >
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.3em]">
-              Send →
-            </span>
+            {isInterrupt ? "※ INTERRUPT →" : "↳ ENQUEUE →"}
           </button>
         </div>
+      </div>
 
-        {/* signature line */}
-        <div className="mt-3 flex items-center justify-between">
-          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-600">
-            Enter to send · Shift+Enter newline · / Commands
-          </span>
-          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-600">
-            — You, Reader
-          </span>
-        </div>
+      {/* signature line */}
+      <div className="flex items-center justify-between border-t border-ink px-4 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink3">
+        <span>
+          ↵ SEND · ⇧↵ NEWLINE · / COMMANDS · 진행 중 끼어들기는 1급 시민
+        </span>
+        <span>// EDIT-RIGHT → USER</span>
       </div>
     </div>
   );
@@ -241,27 +234,28 @@ export function InterventionInput({
 
 function SlashHelpCard({ onClose }: { onClose: () => void }) {
   return (
-    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs">
+    <div className="border-b border-ink bg-paper2 px-4 py-2 font-mono text-[11px]">
       <div className="mb-1 flex items-center justify-between">
-        <span className="font-medium text-zinc-200">/ 슬래시 커맨드</span>
+        <span className="font-bold uppercase tracking-[0.2em] text-ink">
+          / SLASH COMMANDS
+        </span>
         <button
           type="button"
           onClick={onClose}
-          className="text-zinc-500 hover:text-zinc-300"
+          className="text-ink2 hover:text-ink"
+          aria-label="닫기"
         >
           ✕
         </button>
       </div>
-      <ul className="flex flex-col gap-0.5 text-zinc-400">
+      <ul className="flex flex-col gap-0.5">
         {COMMANDS.map((c) => (
-          <li key={c.name} className="flex gap-2">
-            <span className="font-mono text-zinc-200">{c.name}</span>
+          <li key={c.name} className="flex flex-wrap gap-2 text-ink2">
+            <span className="font-bold text-ink">{c.name}</span>
             {c.alias && c.alias.length > 0 && (
-              <span className="font-mono text-zinc-600">
-                ({c.alias.join(", ")})
-              </span>
+              <span className="text-ink3">({c.alias.join(", ")})</span>
             )}
-            <span className="text-zinc-500">— {c.desc}</span>
+            <span className="text-ink3">— {c.desc}</span>
           </li>
         ))}
       </ul>
