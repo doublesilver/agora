@@ -226,7 +226,6 @@ export function InterventionInput({
         <span>
           ↵ SEND · ⇧↵ NEWLINE · / COMMANDS · 진행 중 끼어들기는 1급 시민
         </span>
-        <span>// EDIT-RIGHT → USER</span>
       </div>
     </div>
   );

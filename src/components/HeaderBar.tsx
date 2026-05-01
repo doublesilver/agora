@@ -67,12 +67,20 @@ export function HeaderBar({ view }: Props) {
             AGORA<span className="text-ink3">::</span>FORUM
           </h1>
           <div className="mt-3 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink2">
-            사용자가 끼어들 수 있는 멀티 AI 토론 — N=
-            <span className="text-ink">{view.agents.length || 0} AGENTS</span> ·
-            ROUND <span className="text-ink">{pad2(view.turn)}</span> ·{" "}
-            <span className={`bg-highlight px-1 ${STATUS_TONE[view.status]}`}>
-              {STATUS_LABEL[view.status]}
-            </span>
+            {view.status === "setup" ? (
+              <span className="text-ink3">// AWAITING AUTH · ROSTER → ⚙</span>
+            ) : (
+              <>
+                N=
+                <span className="text-ink">{view.agents.length} AGENTS</span> ·
+                ROUND <span className="text-ink">{pad2(view.turn)}</span> ·{" "}
+                <span
+                  className={`bg-highlight px-1 ${STATUS_TONE[view.status]}`}
+                >
+                  {STATUS_LABEL[view.status]}
+                </span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex flex-col justify-between gap-2 bg-paper2 px-5 py-4">

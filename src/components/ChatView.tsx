@@ -439,9 +439,9 @@ function SetupHints() {
     <div className="flex h-full w-full flex-col text-ink">
       {/* Brutal masthead bar — full bleed, bg-ink */}
       <div className="flex items-center justify-between border-b-2 border-ink bg-ink px-6 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-paper">
-        <span>ISSUE 001 · VOL.1 · STANDBY</span>
-        <span className="text-paper2">// SETUP — AUTH → TOPIC → GO</span>
-        <span className="text-paper2">EST. 2026 · ROUND 00</span>
+        <span>ISSUE 001 · VOL.1 · SETUP</span>
+        <span className="text-paper2">// AUTH → TOPIC → GO</span>
+        <span className="text-paper2">EST. 2026</span>
       </div>
 
       {/* Hero masthead grid — wordmark + editorial sidebar */}
