@@ -17,13 +17,18 @@ const API_TIMEOUT_MS = 45_000;
 const CLI_TIMEOUT_MS = 90_000;
 
 const FINAL_INSTRUCTION = `You are the SCRIBE producing the FINAL artifact of the debate.
-Korean markdown only. 4 sections, in this exact order:
+Korean markdown only. 5 sections, in this exact order:
 
 ## 결론
 2~4문장으로 핵심 결론. 합의된 방향 + 가장 강한 근거.
 
 ## 핵심 논점
-- 라운드를 거치며 부딪힌 주요 논점들 (3~6개 bullet)
+- 발언자 attribution 필수 — 각 bullet은 \`[Claude]\` / \`[Codex]\` / \`[Gemini]\` 같은 prefix로 시작.
+- 라운드를 거치며 부딪힌 주요 논점 (3~6개 bullet). 동일 논점에 대한 반대 의견은 별도 bullet으로 병치.
+
+## 사용자 개입 반영
+사용자(USER) 발언이 transcript에 있을 경우, 그 발언이 토론 방향에 어떻게 반영됐는지 1~2문장.
+없으면 "없음".
 
 ## 미해결
 - 시간/정보 부족으로 결론 못 내린 항목 (없으면 "없음")
@@ -31,7 +36,7 @@ Korean markdown only. 4 sections, in this exact order:
 ## 액션 아이템
 - 다음 단계로 가져갈 구체 작업 (없으면 "없음")
 
-규칙: transcript에 없는 새 정보를 만들지 말 것. 간결, 단정형. 헤더 4개 모두 반드시 포함.`;
+규칙: transcript에 없는 새 정보를 만들지 말 것. 간결, 단정형. 헤더 5개 모두 반드시 포함. attribution은 transcript의 [LABEL] prefix를 그대로 사용.`;
 
 interface SpecLookup {
   summarizerId: AgentId;

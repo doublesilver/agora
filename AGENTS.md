@@ -147,7 +147,7 @@ npm run dev
 토론 종료 시 결과물을 한 번에 회수할 수 있게 **결과 정리 담당(summarizer)** 한 명을 사용자가 좌패널에서 지정한다. 1차 제출에서는 종료 시 1회 final 산출물만 생성한다 (rolling 요약은 호출 비용·UX 노이즈 균형이 맞지 않아 제외).
 
 - **선택**: 좌패널 "📝 결과 정리 담당" 섹션. 활성 에이전트 중 **API 모드(키 입력) 또는 CLI 모드(인증 확인)** 후보를 모두 노출. 미지정 시 산출물 비활성 — transcript와 Export(markdown)는 그대로.
-- **final 산출물**: `session_end` 직전 한 번 호출. `## 결론 / ## 핵심 논점 / ## 미해결 / ## 액션 아이템` 4섹션 markdown 강제. 결과는 `final_artifact` 이벤트로 SSE+JSONL emit.
+- **final 산출물**: `session_end` 직전 한 번 호출. `## 결론 / ## 핵심 논점 / ## 사용자 개입 반영 / ## 미해결 / ## 액션 아이템` 5섹션 markdown 강제. `핵심 논점`은 발언자 attribution(`[Claude]`/`[Codex]`/`[Gemini]`) 필수. `사용자 개입 반영`은 USER 발언이 토론에 어떻게 반영됐는지 1~2문장(없으면 "없음"). 결과는 `final_artifact` 이벤트로 SSE+JSONL emit.
 - **단발 호출 정책**: 산출물 생성은 `speak()`를 우회한다 — PASS 규약·라운드 시그널이 끼면 압축 의도와 충돌하기 때문. 어댑터 인터페이스 일관성을 한 번 깨는 대신 호출 비용·지연을 격리.
   - **API 모드**: SDK 단발 호출 (Anthropic `messages.create` / OpenAI `chat.completions.create` / GoogleGenAI `generateContent`). 타임아웃 45s + AbortController. `state.sessionAbort.signal`과 합성되어 STOP 시 즉시 끊긴다.
   - **CLI 모드**: 1st-party CLI를 `runCliOneshot`(stdout 통째 collect)로 한 번 spawn. 시그니처는 `claude -p "<prompt>"` / `codex exec --skip-git-repo-check --sandbox read-only "<prompt>"` / `gemini -p "<prompt>" -y -m gemini-2.5-flash`. 타임아웃 90s (cold-start 25~40s 흡수).
@@ -383,7 +383,7 @@ loop:
 {"type":"agent_timeout","agentId":"gemini","turn":3,"timeoutMs":30000,"ts":...}
 {"type":"agent_error","agentId":"codex","turn":3,"message":"...redacted-safe...","ts":...}
 {"type":"usage","agentId":"claude","turn":3,"inputTokens":1234,"outputTokens":456,"sessionTotal":12345,"ts":...}
-{"type":"final_artifact","summarizerId":"claude","text":"## 결론\n...\n## 핵심 논점\n...\n## 미해결\n...\n## 액션 아이템\n...","ts":...}
+{"type":"final_artifact","summarizerId":"claude","text":"## 결론\n...\n## 핵심 논점\n- [Claude] ...\n- [Codex] ...\n## 사용자 개입 반영\n...\n## 미해결\n...\n## 액션 아이템\n...","ts":...}
 {"type":"summary_error","stage":"final","message":"...redacted-safe...","ts":...}
 {"type":"session_end","reason":"user_stop|max_turns|budget_exceeded|time_exceeded","ts":...}
 ```
