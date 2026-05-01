@@ -200,141 +200,199 @@ function FinalArtifactCard({ view }: { view: SessionView }) {
 
 function SetupHints() {
   return (
-    <div className="m-auto flex w-full max-w-xl flex-col gap-6 px-2 py-8">
-      <header className="flex flex-col gap-2 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-          Agora · multi-agent debate
-        </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-zinc-100">
-          여러 AI의 토론에 직접 끼어드세요
-        </h2>
-        <p className="text-[13px] leading-relaxed text-zinc-400">
-          Claude · GPT · Gemini가 직렬 라운드로 자유롭게 메시지를 주고받습니다.
-          사용자는 언제든 즉시 끼어들거나 다음 라운드에 보탤 수 있고, 전체
-          transcript를 실시간으로 관찰합니다.
-        </p>
-      </header>
+    <div className="m-auto grid w-full max-w-3xl grid-cols-[auto_1fr] gap-x-10 gap-y-6 px-4 py-12">
+      <div className="col-span-2 flex items-baseline gap-4 border-b border-zinc-800 pb-6">
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+          Issue №00 · standby
+        </span>
+        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+          Agora / multi-agent debate
+        </span>
+      </div>
 
-      <ol className="flex flex-col gap-2 text-left text-[13px] text-zinc-300">
-        <li className="flex items-start gap-3 rounded-lg border border-zinc-800/80 bg-zinc-950/60 px-3.5 py-3 transition-colors hover:border-zinc-700">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-mono text-[11px] text-zinc-300">
-            1
-          </span>
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium text-zinc-100">AI 활성·인증</span>
-            <span className="text-[12px] text-zinc-500">
-              좌측 ‘AI 에이전트 설정’에서 2개 이상 활성화하고 API 키 또는 CLI를
-              인증하세요.
-            </span>
-          </div>
-        </li>
-        <li className="flex items-start gap-3 rounded-lg border border-zinc-800/80 bg-zinc-950/60 px-3.5 py-3 transition-colors hover:border-zinc-700">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-mono text-[11px] text-zinc-300">
-            2
-          </span>
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium text-zinc-100">
-              토론 주제 + (선택) 요약 담당
-            </span>
-            <span className="text-[12px] text-zinc-500">
-              프리셋 칩이 가장 빠릅니다. 요약 담당을 지정하면 라운드마다 실시간
-              요약과 종료 시 최종 산출물이 생성됩니다.
-            </span>
-          </div>
-        </li>
-        <li className="flex items-start gap-3 rounded-lg border border-zinc-800/80 bg-zinc-950/60 px-3.5 py-3 transition-colors hover:border-zinc-700">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-mono text-[11px] text-zinc-300">
-            3
-          </span>
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium text-zinc-100">시작</span>
-            <span className="text-[12px] text-zinc-500">
-              좌측 ‘세션 시작’ 버튼을 누르면 토론이 시작됩니다. 진행 중 언제든
-              하단 입력창으로 끼어들 수 있어요.
-            </span>
-          </div>
-        </li>
+      <h2 className="col-span-2 max-w-2xl text-[40px] font-semibold leading-[1.1] tracking-[-0.025em] text-zinc-50">
+        AI들이 토론하는 도중,
+        <br />
+        <span className="text-zinc-400">당신이 끼어들 수 있다.</span>
+      </h2>
+
+      <p className="col-span-2 max-w-xl text-[14px] leading-[1.7] text-zinc-400">
+        Claude · GPT · Gemini가 한 명씩 직렬로 메시지를 주고받는다. 사용자는
+        진행 중 발언을 즉시 끊고 의견을 끼우거나, 다음 라운드 큐에 보탠다. 모든
+        토큰은 실시간 스트리밍, 모든 이벤트는 JSONL로 기록된다.
+      </p>
+
+      <ol className="col-span-2 mt-2 grid grid-cols-1 divide-y divide-zinc-800 border-y border-zinc-800 md:grid-cols-3 md:divide-x md:divide-y-0">
+        <SetupStep
+          n="01"
+          label="Authenticate"
+          title="AI 활성·인증"
+          body="좌측 ‘AI 에이전트 설정’에서 2개 이상 활성화하고 API 키 또는 CLI를 인증한다."
+        />
+        <SetupStep
+          n="02"
+          label="Topic"
+          title="토론 주제 · 결과 정리 담당"
+          body="프리셋 칩이 가장 빠르다. 정리 담당을 지정하면 종료 시 결론·논점·미해결·액션 4섹션 산출물이 따라온다."
+        />
+        <SetupStep
+          n="03"
+          label="On air"
+          title="시작 · 끼어들기"
+          body="좌측 ‘세션 시작’ → 진행 중 언제든 하단 입력창으로 끼어들기. 진행 발언을 자르거나 큐에 보탠다."
+        />
       </ol>
     </div>
   );
 }
 
+function SetupStep({
+  n,
+  label,
+  title,
+  body,
+}: {
+  n: string;
+  label: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <li className="flex flex-col gap-2 px-5 py-5">
+      <div className="flex items-baseline justify-between">
+        <span className="font-mono text-[28px] font-light text-zinc-700">
+          {n}
+        </span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          {label}
+        </span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-[14px] font-medium tracking-tight text-zinc-100">
+          {title}
+        </span>
+        <span className="text-[12px] leading-[1.7] text-zinc-500">{body}</span>
+      </div>
+    </li>
+  );
+}
+
+const AGENT_BAR: Record<string, string> = {
+  user: "bg-zinc-500",
+  claude: "bg-orange-400",
+  codex: "bg-emerald-400",
+  gemini: "bg-blue-400",
+};
+
+const AGENT_LABEL_COLOR: Record<string, string> = {
+  user: "text-zinc-400",
+  claude: "text-orange-300",
+  codex: "text-emerald-300",
+  gemini: "text-blue-300",
+};
+
 function Bubble({ message }: { message: ChatMessage }) {
   const theme = AGENT_THEME[message.role] ?? AGENT_THEME.user;
+  const bar = AGENT_BAR[message.role] ?? AGENT_BAR.user;
   const isUserInterrupt =
     message.role === "user" && message.mode === "interrupt";
   const isUserQueue = message.role === "user" && message.mode === "queue";
-  const ringClass = isUserInterrupt
-    ? "ring-2 ring-amber-500 shadow-[0_0_24px_-4px_rgba(245,158,11,0.45)] animate-bubble-in"
-    : isUserQueue
-      ? "ring-1 ring-blue-700"
-      : `ring-1 ${theme.ring}`;
-  const userTag = isUserInterrupt
-    ? "⚡ 즉시 끼어들기"
-    : isUserQueue
-      ? "📥 큐에 추가"
-      : null;
+  const userTag = isUserInterrupt ? "INTERRUPT" : isUserQueue ? "QUEUED" : null;
+  const interruptStyle = isUserInterrupt ? "animate-bubble-in" : "";
 
   return (
-    <div
-      className={`max-w-[78ch] rounded-xl px-4 py-3 transition-shadow ${theme.bg} ${ringClass}`}
+    <article
+      className={`group relative grid w-full max-w-[78ch] grid-cols-[3px_1fr] gap-4 ${interruptStyle}`}
     >
-      <div className="mb-1.5 flex items-center gap-2 text-xs text-zinc-400">
-        <span className="text-[13px]">{theme.emoji}</span>
-        <span className="font-semibold tracking-tight text-zinc-200">
-          {theme.label}
-        </span>
-        {userTag && (
-          <span className="rounded bg-amber-700/40 px-1.5 py-0.5 text-[10px] text-amber-200">
-            {userTag}
-          </span>
-        )}
-        {message.turn !== undefined && <span>· 라운드 {message.turn}</span>}
-        {message.streaming && message.text.length === 0 && (
-          <span className="ml-2 inline-flex items-center gap-1 text-amber-300">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-            생각 중…
-          </span>
-        )}
-        {message.streaming && message.text.length > 0 && (
-          <span className="text-emerald-300">· 전송 중</span>
-        )}
-        {message.interrupted && (
-          <span className="ml-2 rounded bg-amber-700/40 px-1.5 py-0.5 text-[10px] text-amber-200">
-            끼어듦으로 중단
-          </span>
-        )}
-      </div>
       <div
-        className={`text-sm ${message.interrupted ? "text-zinc-500" : "text-zinc-100"}`}
-      >
-        {message.text ? (
-          <div className="prose-invert">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={MARKDOWN_COMPONENTS}
+        aria-hidden="true"
+        className={`${bar} ${
+          isUserInterrupt ? "shadow-[0_0_12px_rgba(245,158,11,0.5)]" : ""
+        } rounded-full opacity-80 transition-opacity group-hover:opacity-100`}
+      />
+      <div className="flex flex-col gap-1.5 pb-1">
+        <div className="flex items-baseline gap-3 text-[10px]">
+          <span
+            className={`font-mono uppercase tracking-[0.18em] ${
+              AGENT_LABEL_COLOR[message.role] ?? "text-zinc-400"
+            }`}
+          >
+            {theme.label}
+          </span>
+          {message.turn !== undefined && (
+            <span className="font-mono tabular-nums text-zinc-600">
+              R{String(message.turn).padStart(2, "0")}
+            </span>
+          )}
+          {userTag && (
+            <span
+              className={`rounded-sm px-1.5 py-0.5 font-mono tracking-wider ${
+                isUserInterrupt
+                  ? "bg-amber-500/15 text-amber-300"
+                  : "bg-blue-500/15 text-blue-300"
+              }`}
             >
-              {message.text}
-            </ReactMarkdown>
-            {message.streaming && (
-              <span className="ml-0.5 animate-pulse">▌</span>
-            )}
-          </div>
-        ) : message.streaming ? (
-          <span className="italic text-zinc-500">
-            CLI 부팅·인증 체크 중… (CLI 모드는 첫 응답까지 ~25초 걸릴 수 있어요)
+              {userTag}
+            </span>
+          )}
+          {message.streaming && message.text.length === 0 && (
+            <span className="inline-flex items-center gap-1 text-amber-300">
+              <span className="h-1 w-1 animate-pulse rounded-full bg-amber-400" />
+              <span className="font-mono uppercase tracking-wider">
+                thinking
+              </span>
+            </span>
+          )}
+          {message.streaming && message.text.length > 0 && (
+            <span className="font-mono uppercase tracking-wider text-emerald-400">
+              streaming
+            </span>
+          )}
+          {message.interrupted && (
+            <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 font-mono tracking-wider text-amber-300">
+              CUT
+            </span>
+          )}
+          <span className="ml-auto font-mono tabular-nums text-zinc-700">
+            {new Date(message.ts).toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })}
           </span>
-        ) : message.interrupted ? (
-          <span className="italic text-zinc-600">
-            (응답 시간 초과 또는 끼어들기로 중단됨)
-          </span>
-        ) : (
-          <span className="italic text-zinc-600">
-            (응답 실패 — 우측 활동 로그에서 사유 확인)
-          </span>
-        )}
+        </div>
+        <div
+          className={`text-sm ${message.interrupted ? "text-zinc-500" : "text-zinc-100"}`}
+        >
+          {message.text ? (
+            <div className="prose-invert">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={MARKDOWN_COMPONENTS}
+              >
+                {message.text}
+              </ReactMarkdown>
+              {message.streaming && (
+                <span className="ml-0.5 animate-pulse">▌</span>
+              )}
+            </div>
+          ) : message.streaming ? (
+            <span className="italic text-zinc-500">
+              CLI 부팅·인증 체크 중… (CLI 모드는 첫 응답까지 ~25초 걸릴 수
+              있어요)
+            </span>
+          ) : message.interrupted ? (
+            <span className="italic text-zinc-600">
+              (응답 시간 초과 또는 끼어들기로 중단됨)
+            </span>
+          ) : (
+            <span className="italic text-zinc-600">
+              (응답 실패 — 우측 활동 로그에서 사유 확인)
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
