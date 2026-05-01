@@ -47,10 +47,10 @@ interface Props {
 }
 
 export function HeaderBar({ view }: Props) {
-  const pct = Math.min(
-    100,
-    Math.round((view.sessionTokens / MAX_SESSION_TOKENS) * 100),
-  );
+  const tokenMax = view.limits?.maxSessionTokens ?? MAX_SESSION_TOKENS;
+  const durationMax =
+    view.limits?.maxSessionDurationMs ?? MAX_SESSION_DURATION_MS;
+  const pct = Math.min(100, Math.round((view.sessionTokens / tokenMax) * 100));
   const showRotation =
     view.agents.length > 0 &&
     (view.status === "running" ||
@@ -111,9 +111,12 @@ export function HeaderBar({ view }: Props) {
       </div>
 
       <div className="flex items-center gap-5 border-l border-zinc-800/80 px-6 py-2">
-        <TokenGauge value={view.sessionTokens} pct={pct} />
+        <TokenGauge value={view.sessionTokens} pct={pct} max={tokenMax} />
         {view.sessionStartTs !== null && view.status !== "stopped" && (
-          <ElapsedTimer startTs={view.sessionStartTs} />
+          <ElapsedTimer
+            startTs={view.sessionStartTs}
+            durationMax={durationMax}
+          />
         )}
         {view.sessionId && view.status !== "setup" && (
           <a
@@ -145,7 +148,15 @@ function Meta({
   );
 }
 
-function TokenGauge({ value, pct }: { value: number; pct: number }) {
+function TokenGauge({
+  value,
+  pct,
+  max,
+}: {
+  value: number;
+  pct: number;
+  max: number;
+}) {
   const danger = pct >= 90;
   return (
     <div className="flex items-baseline gap-2">
@@ -157,8 +168,8 @@ function TokenGauge({ value, pct }: { value: number; pct: number }) {
         aria-label="세션 토큰 사용량"
         aria-valuenow={value}
         aria-valuemin={0}
-        aria-valuemax={MAX_SESSION_TOKENS}
-        aria-valuetext={`${value.toLocaleString()} / ${MAX_SESSION_TOKENS.toLocaleString()} (${pct}%)`}
+        aria-valuemax={max}
+        aria-valuetext={`${value.toLocaleString()} / ${max.toLocaleString()} (${pct}%)`}
         className="relative h-3 w-32 border-b border-zinc-800"
       >
         <div
@@ -171,28 +182,31 @@ function TokenGauge({ value, pct }: { value: number; pct: number }) {
       <span
         className={`font-mono text-[11px] tabular-nums ${danger ? "text-red-300" : "text-zinc-300"}`}
       >
-        {Math.round(value / 1000)}k/{Math.round(MAX_SESSION_TOKENS / 1000)}k
+        {Math.round(value / 1000)}k/{Math.round(max / 1000)}k
       </span>
     </div>
   );
 }
 
-function ElapsedTimer({ startTs }: { startTs: number }) {
+function ElapsedTimer({
+  startTs,
+  durationMax,
+}: {
+  startTs: number;
+  durationMax: number;
+}) {
   const [, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((v) => v + 1), 1000);
     return () => clearInterval(t);
   }, []);
   const elapsed = Date.now() - startTs;
-  const pct = Math.min(
-    100,
-    Math.round((elapsed / MAX_SESSION_DURATION_MS) * 100),
-  );
+  const pct = Math.min(100, Math.round((elapsed / durationMax) * 100));
   const mm = Math.floor(elapsed / 60000);
   const ss = Math.floor((elapsed % 60000) / 1000)
     .toString()
     .padStart(2, "0");
-  const totalMm = Math.floor(MAX_SESSION_DURATION_MS / 60000);
+  const totalMm = Math.floor(durationMax / 60000);
   const danger = pct >= 90;
   return (
     <div className="flex items-baseline gap-2">
@@ -204,7 +218,7 @@ function ElapsedTimer({ startTs }: { startTs: number }) {
         aria-label="세션 경과 시간"
         aria-valuenow={Math.floor(elapsed / 1000)}
         aria-valuemin={0}
-        aria-valuemax={Math.floor(MAX_SESSION_DURATION_MS / 1000)}
+        aria-valuemax={Math.floor(durationMax / 1000)}
         aria-valuetext={`${mm}:${ss} / ${totalMm}:00`}
         className="relative h-3 w-20 border-b border-zinc-800"
       >

@@ -10,6 +10,7 @@ import {
 } from "./constants";
 import {
   Notifier,
+  type SessionLimits,
   type SessionState,
   emitEvent,
   type InterveneMode,
@@ -27,6 +28,29 @@ interface CreateSessionOptions {
   systemPrompts: Partial<Record<AgentId, string>>;
   userPrompt: string;
   summarizerId?: AgentId;
+  /** 사용자 override. 미지정·잘못된 값은 constants default로 fallback. */
+  limits?: Partial<SessionLimits>;
+}
+
+/** 안전 범위 [min, max]로 clamp. 사용자가 비정상 값을 보내도 시스템은 보호. */
+function clampLimits(input?: Partial<SessionLimits>): SessionLimits {
+  const turns = Number(input?.maxTurns);
+  const tokens = Number(input?.maxSessionTokens);
+  const ms = Number(input?.maxSessionDurationMs);
+  return {
+    maxTurns:
+      Number.isFinite(turns) && turns >= 1 && turns <= 200
+        ? Math.floor(turns)
+        : MAX_TURNS,
+    maxSessionTokens:
+      Number.isFinite(tokens) && tokens >= 1_000 && tokens <= 1_000_000
+        ? Math.floor(tokens)
+        : MAX_SESSION_TOKENS,
+    maxSessionDurationMs:
+      Number.isFinite(ms) && ms >= 30_000 && ms <= 60 * 60_000
+        ? Math.floor(ms)
+        : MAX_SESSION_DURATION_MS,
+  };
 }
 
 export function createSessionState(opts: CreateSessionOptions): SessionState {
@@ -61,6 +85,7 @@ export function createSessionState(opts: CreateSessionOptions): SessionState {
     closers: [],
     summarizerId: opts.summarizerId,
     errorStreak: new Map(),
+    limits: clampLimits(opts.limits),
   };
 }
 
@@ -119,12 +144,14 @@ type SessionEndReason =
   | "budget_exceeded"
   | "time_exceeded";
 
-/** 매 라운드 시작 전 가드. 종료 사유 반환 시 세션 종료. */
+/** 매 라운드 시작 전 가드. 종료 사유 반환 시 세션 종료.
+ * state.limits는 사용자 override가 적용된 값(constants default fallback). */
 function checkSessionGate(state: SessionState): SessionEndReason | null {
   if (state.sessionAbort.signal.aborted) return "user_stop";
-  if (state.turn >= MAX_TURNS) return "max_turns";
-  if (state.sessionTokens >= MAX_SESSION_TOKENS) return "budget_exceeded";
-  if (now() - state.startedAt >= MAX_SESSION_DURATION_MS)
+  if (state.turn >= state.limits.maxTurns) return "max_turns";
+  if (state.sessionTokens >= state.limits.maxSessionTokens)
+    return "budget_exceeded";
+  if (now() - state.startedAt >= state.limits.maxSessionDurationMs)
     return "time_exceeded";
   return null;
 }
@@ -201,6 +228,7 @@ export async function runSession(state: SessionState): Promise<void> {
       string
     >,
     userPrompt: state.transcript.snapshot()[0]?.text ?? "",
+    limits: state.limits,
     ts: now(),
   });
   emitEvent(state, { type: "status", value: "running", ts: now() });

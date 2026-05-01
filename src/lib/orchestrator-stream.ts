@@ -2,10 +2,7 @@
  * agent_end / agent_timeout / agent_error는 모두 이 함수가 단독으로 emit한다.
  * speakOnce는 transcript push와 usage만 책임 — 이중 emit 방지. */
 import type { AgentAdapter } from "./agents/types";
-import {
-  AGENT_FIRST_TOKEN_TIMEOUT_MS,
-  MAX_SESSION_DURATION_MS,
-} from "./constants";
+import { AGENT_FIRST_TOKEN_TIMEOUT_MS } from "./constants";
 import { type SessionState, emitEvent } from "./session-store";
 
 const now = (): number => Date.now();
@@ -116,7 +113,7 @@ export async function streamSpeakerTokens(
     while (true) {
       if (state.sessionAbort.signal.aborted) break;
       if (state.roundAbort.signal.aborted) break;
-      if (now() - state.startedAt >= MAX_SESSION_DURATION_MS) {
+      if (now() - state.startedAt >= state.limits.maxSessionDurationMs) {
         state.sessionAbort.abort("time");
         break;
       }

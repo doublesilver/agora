@@ -18,6 +18,13 @@ interface SessionRequest {
   userPrompt: string;
   /** 요약 담당 에이전트 id — 활성 어댑터 중 하나여야 함. 미지정·미일치면 요약 비활성. */
   summarizerId?: "claude" | "codex" | "gemini";
+  /** 세션 한도 override — SettingsModal LimitsPane에서 사용자 변경 시 클라가 보냄.
+   * 미지정·잘못된 값은 server에서 constants default로 fallback (clampLimits). */
+  limits?: {
+    maxTurns?: number;
+    maxSessionTokens?: number;
+    maxSessionDurationMs?: number;
+  };
 }
 
 export async function POST(req: Request) {
@@ -73,6 +80,7 @@ export async function POST(req: Request) {
     >,
     userPrompt: body.userPrompt,
     summarizerId,
+    limits: body.limits,
   });
 
   const logger = new JsonlLogger(sessionId);

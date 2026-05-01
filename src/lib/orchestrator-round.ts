@@ -5,7 +5,6 @@ import { PASS_INSTRUCTION, PASS_TOKEN } from "./agents/types";
 import {
   AGENT_FIRST_TOKEN_TIMEOUT_MS,
   MAX_AGENT_ERROR_STREAK,
-  MAX_SESSION_TOKENS,
 } from "./constants";
 import { type SessionState, anySignal, emitEvent } from "./session-store";
 import { streamSpeakerTokens } from "./orchestrator-stream";
@@ -201,7 +200,7 @@ export async function runRound(state: SessionState): Promise<boolean> {
     const spoke = await speakOnce(state, speaker);
     if (spoke) anySpeak = true;
 
-    if (state.sessionTokens >= MAX_SESSION_TOKENS) break;
+    if (state.sessionTokens >= state.limits.maxSessionTokens) break;
   }
 
   // 모든 활성 어댑터가 회복 불가 사유로 N회 연속 실패 → 자동 종료(user_stop reason).

@@ -29,6 +29,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  /* SettingsModal 외관 패널이 documentElement.style에 박는 변수. 미설정 14px. */
+  font-size: var(--agora-font-size, 14px);
   letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

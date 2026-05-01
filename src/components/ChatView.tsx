@@ -129,9 +129,10 @@ const AGENT_THEME: Record<
 
 interface Props {
   view: SessionView;
+  density?: "compact" | "cozy";
 }
 
-export function ChatView({ view }: Props) {
+export function ChatView({ view, density = "cozy" }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
 
@@ -187,7 +188,9 @@ export function ChatView({ view }: Props) {
     <div
       ref={scrollRef}
       onScroll={onScroll}
-      className="flex h-full flex-col gap-3 overflow-y-auto bg-zinc-950 px-6 py-6"
+      className={`flex h-full flex-col overflow-y-auto bg-zinc-950 px-6 py-6 ${
+        density === "compact" ? "gap-2" : "gap-4"
+      }`}
     >
       {view.messages.length === 0 && <SetupHints />}
       {items}

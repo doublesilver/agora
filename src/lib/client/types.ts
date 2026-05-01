@@ -1,6 +1,7 @@
 /* 클라 사이드 SSE 이벤트 + 세션 상태 타입. 서버 OrchestratorEvent와 동일 형식. */
 import type {
   OrchestratorEvent,
+  SessionLimits,
   SessionStatus,
   InterveneMode,
 } from "@/lib/session-store";
@@ -8,6 +9,7 @@ import type { AgentId, AgentMode } from "@/lib/agents/types";
 
 export type {
   OrchestratorEvent,
+  SessionLimits,
   SessionStatus,
   InterveneMode,
   AgentId,
@@ -101,4 +103,7 @@ export interface SessionView {
     message: string;
     ts: number;
   } | null;
+  /** 서버가 session_start로 알려준 세션 한도(사용자 override + clamp 결과).
+   * HeaderBar의 토큰·시간 게이지가 이 값을 max로 사용. */
+  limits: SessionLimits | null;
 }

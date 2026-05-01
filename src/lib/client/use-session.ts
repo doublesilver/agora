@@ -38,6 +38,7 @@ const initialView: SessionView = {
   activityLog: [],
   finalArtifact: null,
   summaryError: null,
+  limits: null,
 };
 
 function blankStats(): AgentRuntimeStats {
@@ -117,6 +118,11 @@ export function useSession() {
       configs: AgentConfig[],
       userPrompt: string,
       summarizerId?: AgentId,
+      limits?: {
+        maxTurns?: number;
+        maxSessionTokens?: number;
+        maxSessionDurationMs?: number;
+      },
     ) => {
       const enabled = configs.filter((c) => c.enabled);
       const res = await fetch("/api/session", {
@@ -133,6 +139,7 @@ export function useSession() {
           ),
           userPrompt,
           summarizerId,
+          limits,
         }),
       });
       if (!res.ok) {
@@ -383,6 +390,7 @@ function applyEvent(prev: SessionView, e: OrchestratorEvent): SessionView {
         status: "running",
         agents: e.agents.map((a) => a.id),
         sessionStartTs: e.ts,
+        limits: e.limits,
       };
     case "status":
       return { ...prev, status: e.value };

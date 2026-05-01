@@ -1,4 +1,4 @@
-/* Agora 메인 페이지 — 좌측 패널 + 상단 헤더 + 채팅 + 입력. */
+/* Agora 메인 페이지 — 좌측 패널 + 상단 헤더 + 채팅 + 입력 + ⚙ SettingsModal. */
 "use client";
 
 import { useState } from "react";
@@ -8,6 +8,11 @@ import { InterventionInput } from "@/components/InterventionInput";
 import { HeaderBar } from "@/components/HeaderBar";
 import { AgentStrip } from "@/components/AgentStrip";
 import { ActivityLog } from "@/components/ActivityLog";
+import {
+  SettingsModal,
+  useAppearance,
+  useLimits,
+} from "@/components/SettingsModal";
 import { useSession } from "@/lib/client/use-session";
 import type { AgentConfig } from "@/lib/client/types";
 import type { AgentId } from "@/lib/agents/types";
@@ -51,6 +56,9 @@ export default function Home() {
   const [referenceDoc, setReferenceDoc] = useState("");
   const [summarizerId, setSummarizerId] = useState<AgentId | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [appearance, setAppearance] = useAppearance();
+  const [limits, setLimits] = useLimits();
   const { view, actions } = useSession();
 
   return (
@@ -79,12 +87,8 @@ export default function Home() {
       )}
       <LeftPanel
         configs={configs}
-        setConfigs={setConfigs}
-        referenceDoc={referenceDoc}
-        setReferenceDoc={setReferenceDoc}
-        summarizerId={summarizerId}
-        setSummarizerId={setSummarizerId}
         view={view}
+        summarizerId={summarizerId}
         onStart={async (prompt) => {
           setErrorBanner(null);
           const merged = configs.map((c) => ({
@@ -93,10 +97,6 @@ export default function Home() {
           }));
           const enabled = merged.filter((c) => c.enabled);
           const enabledIds = enabled.map((c) => c.id);
-          // 사용자가 명시 선택했으면 그대로, 아니면 자동 fallback —
-          // 결과(final_artifact)는 사용자가 토론을 한 핵심 이유라
-          // 미지정/끄기 상태에서도 산출물이 따라오게 한다. 우선순위는 API+키
-          // (가장 빠르고 안정), 그 다음 CLI(설치 가정).
           const explicit =
             summarizerId && enabledIds.includes(summarizerId)
               ? summarizerId
@@ -108,23 +108,26 @@ export default function Home() {
           const effectiveSummarizer =
             explicit ?? apiFallback?.id ?? cliFallback?.id ?? undefined;
           try {
-            await actions.startSession(merged, prompt, effectiveSummarizer);
+            await actions.startSession(
+              merged,
+              prompt,
+              effectiveSummarizer,
+              limits,
+            );
           } catch (err) {
             setErrorBanner((err as Error)?.message ?? "알 수 없는 오류입니다.");
           }
         }}
-        onSetSystemPrompt={(id: AgentId, prompt: string) =>
-          actions.setSystemPrompt(id, mergeWithReference(prompt, referenceDoc))
-        }
         onPause={actions.pause}
         onResume={actions.resume}
         onStop={actions.stop}
         onReset={actions.reset}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       <main className="flex flex-1 flex-col overflow-hidden">
         <HeaderBar view={view} />
         <AgentStrip view={view} configs={configs} />
-        <ChatView view={view} />
+        <ChatView view={view} density={appearance.density} />
         <InterventionInput
           view={view}
           onSend={actions.intervene}
@@ -134,6 +137,24 @@ export default function Home() {
         />
       </main>
       <ActivityLog view={view} />
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        view={view}
+        configs={configs}
+        setConfigs={setConfigs}
+        referenceDoc={referenceDoc}
+        setReferenceDoc={setReferenceDoc}
+        summarizerId={summarizerId}
+        setSummarizerId={setSummarizerId}
+        appearance={appearance}
+        setAppearance={setAppearance}
+        limits={limits}
+        setLimits={setLimits}
+        onSetSystemPrompt={(id, prompt) =>
+          actions.setSystemPrompt(id, mergeWithReference(prompt, referenceDoc))
+        }
+      />
     </div>
   );
 }

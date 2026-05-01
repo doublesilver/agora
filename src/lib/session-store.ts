@@ -7,6 +7,12 @@ export type SessionStatus = "running" | "idle" | "paused" | "stopped";
 
 export type InterveneMode = "interrupt" | "queue";
 
+export interface SessionLimits {
+  maxTurns: number;
+  maxSessionTokens: number;
+  maxSessionDurationMs: number;
+}
+
 export type OrchestratorEvent =
   | {
       type: "session_start";
@@ -14,6 +20,7 @@ export type OrchestratorEvent =
       agents: { id: AgentId; mode: AgentAdapter["mode"] }[];
       systemPrompts: Record<string, string>;
       userPrompt: string;
+      limits: SessionLimits;
       ts: number;
     }
   | {
@@ -124,6 +131,10 @@ export interface SessionState {
   /** 어댑터별 연속 에러 카운트 — 회복 불가 사유(401/잔액 부족 등) 도배 차단용.
    * 정상 발화·PASS 시 0으로 reset. MAX_AGENT_ERROR_STREAK 초과 시 라운드 skip. */
   errorStreak: Map<AgentId, number>;
+  /** 세션 한도 — 사용자가 SettingsModal에서 변경 가능. 미지정 시 constants
+   * default. 모든 가드(checkSessionGate / 시간 캡 재검사 / 토큰 캡 break)가
+   * 이 값을 사용한다. */
+  limits: SessionLimits;
 }
 
 const sessions = new Map<string, SessionState>();
