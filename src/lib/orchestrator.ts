@@ -145,14 +145,16 @@ type SessionEndReason =
   | "time_exceeded";
 
 /** 매 라운드 시작 전 가드. 종료 사유 반환 시 세션 종료.
- * state.limits는 사용자 override가 적용된 값(constants default fallback). */
+ * state.limits는 사용자 override가 적용된 값(constants default fallback).
+ * 시간/토큰 캡은 sessionAbort.aborted 검사보다 먼저 — 스트림 내부에서
+ * sessionAbort.abort("time")으로 fire한 경우 user_stop으로 둔갑하지 않게. */
 function checkSessionGate(state: SessionState): SessionEndReason | null {
-  if (state.sessionAbort.signal.aborted) return "user_stop";
   if (state.turn >= state.limits.maxTurns) return "max_turns";
   if (state.sessionTokens >= state.limits.maxSessionTokens)
     return "budget_exceeded";
   if (now() - state.startedAt >= state.limits.maxSessionDurationMs)
     return "time_exceeded";
+  if (state.sessionAbort.signal.aborted) return "user_stop";
   return null;
 }
 

@@ -19,6 +19,10 @@ export async function POST(req: Request) {
   if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!body.agentId)
     return NextResponse.json({ error: "missing_agentId" }, { status: 400 });
-  setSystemPrompt(state, body.agentId, body.prompt ?? "");
+  const prompt = body.prompt ?? "";
+  if (typeof prompt !== "string" || prompt.length > 32_000) {
+    return NextResponse.json({ error: "prompt_too_long" }, { status: 413 });
+  }
+  setSystemPrompt(state, body.agentId, prompt);
   return NextResponse.json({ ok: true });
 }

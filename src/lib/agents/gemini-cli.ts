@@ -96,6 +96,11 @@ export function createGeminiCliAdapter(
             inputTokens += t.prompt ?? 0;
             outputTokens += t.candidates ?? 0;
           }
+          // stats 미보고 시 글자수/4 추정 폴백 — transcript 무제한 폭주 방어.
+          if (outputTokens === 0 && text.length > 0) {
+            inputTokens = Math.ceil(fullPrompt.length / 4);
+            outputTokens = Math.ceil(text.length / 4);
+          }
           usage = { inputTokens, outputTokens };
           queue.finish();
         } catch (e) {

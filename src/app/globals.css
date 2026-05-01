@@ -9,6 +9,7 @@
   --paper2: #eae6d8;
   --paper-deep: #ddd7c4;
   --ink: #0a0a0a;
+  --ink0: #1a1a1a;
   --ink2: #3a3a3a;
   --ink3: #7a7670;
   --highlight: #f2e14c;
@@ -29,6 +30,7 @@
   --color-paper2: var(--paper2);
   --color-paper-deep: var(--paper-deep);
   --color-ink: var(--ink);
+  --color-ink0: var(--ink0);
   --color-ink2: var(--ink2);
   --color-ink3: var(--ink3);
   --color-highlight: var(--highlight);

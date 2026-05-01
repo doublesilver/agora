@@ -525,9 +525,7 @@ function AgentsPane({
             <span className={`font-medium ${AGENT_ACCENT[c.id]}`}>
               {AGENT_LABELS[c.id]}
             </span>
-            <span className="text-[10px] text-ink0">
-              {AGENT_PERSONA[c.id]}
-            </span>
+            <span className="text-[10px] text-ink0">{AGENT_PERSONA[c.id]}</span>
             <select
               value={c.mode}
               disabled={!isSetup}
@@ -1288,10 +1286,10 @@ function PresetChips<T extends number>({
             type="button"
             onClick={() => onPick(n)}
             aria-pressed={active}
-            className={`rounded-full px-2 py-0.5 font-mono text-[10px] ring-1 transition-colors ${
+            className={`border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors ${
               active
-                ? "bg-zinc-700 text-ink ring-zinc-500"
-                : "bg-paper2 text-ink2 ring-ink hover:text-ink"
+                ? "border-ink bg-ink text-paper"
+                : "border-ink bg-paper text-ink2 hover:bg-ink hover:text-paper"
             }`}
           >
             {format(n)}

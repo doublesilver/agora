@@ -19,6 +19,9 @@ export async function POST(req: Request) {
   if (!body.text || typeof body.text !== "string") {
     return NextResponse.json({ error: "missing_text" }, { status: 400 });
   }
+  if (body.text.length > 8_000) {
+    return NextResponse.json({ error: "text_too_long" }, { status: 413 });
+  }
   const mode = body.mode === "interrupt" ? "interrupt" : "queue";
   intervene(state, body.text, mode);
   return NextResponse.json({ ok: true });

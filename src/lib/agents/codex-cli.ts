@@ -46,6 +46,7 @@ export function createCodexCliAdapter(
       );
 
       let usage: AgentUsage = { inputTokens: 0, outputTokens: 0 };
+      let producedText = "";
 
       const queue = createStreamQueue(() => {
         handle.detachAbort();
@@ -64,7 +65,10 @@ export function createCodexCliAdapter(
             ev?.item?.type === "agent_message"
           ) {
             const text = typeof ev.item.text === "string" ? ev.item.text : "";
-            if (text) queue.push(text);
+            if (text) {
+              producedText += text;
+              queue.push(text);
+            }
           } else if (ev?.type === "turn.completed" && ev?.usage) {
             usage = {
               inputTokens: ev.usage.input_tokens ?? 0,
@@ -98,6 +102,13 @@ export function createCodexCliAdapter(
             ),
           );
           return;
+        }
+        // turn.completed 미수신 시 글자수/4 추정 폴백 — transcript 무제한 폭주 방어.
+        if (usage.outputTokens === 0 && producedText.length > 0) {
+          usage = {
+            inputTokens: Math.ceil(transcriptText.length / 4),
+            outputTokens: Math.ceil(producedText.length / 4),
+          };
         }
         queue.finish();
       });
