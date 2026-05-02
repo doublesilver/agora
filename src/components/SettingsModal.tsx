@@ -667,6 +667,10 @@ function ModelSelect({
 }) {
   const preset = MODEL_PRESETS[agentId];
   const listId = `model-presets-${agentId}`;
+  // 자유 입력 가능하지만 프리셋 외 값은 SDK가 model_not_found로 토해야 비로소
+  // 발각된다 — 첫 라운드 PASS로 잘리는 회피 가능 사용자 실수. 외부값 즉시 hint.
+  const isPreset =
+    !value || value.trim().length === 0 || preset.models.includes(value);
   return (
     <label className="flex items-center gap-2 text-[11px] text-ink2">
       <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-ink3">
@@ -689,6 +693,14 @@ function ModelSelect({
           <option key={m} value={m} />
         ))}
       </datalist>
+      {!isPreset && (
+        <span
+          className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-ink"
+          title="프리셋 외 모델 — SDK 호출이 실패하면 첫 라운드가 PASS로 잘립니다"
+        >
+          ⚠ 비프리셋
+        </span>
+      )}
     </label>
   );
 }
@@ -855,8 +867,8 @@ function SummarizerPane({
   return (
     <section className="flex flex-col gap-2">
       <p className="text-[11px] text-ink0">
-        종료 시 결론·논점·미해결·액션 4섹션 산출물. 미선택 시 첫 활성 어댑터로
-        자동.
+        종료 시 결론·논점·사용자개입반영·미해결·액션 5섹션 markdown 산출물.
+        미선택 시 첫 활성 어댑터로 자동.
       </p>
       {candidates.length === 0 ? (
         <p className="rounded border border-ink bg-paper2 px-3 py-2 text-[11px] text-ink0">
@@ -1449,7 +1461,8 @@ function AboutPane() {
         <li>어댑터: Claude API/CLI · Codex API/CLI · Gemini API/CLI 6종</li>
         <li>개입: 즉시 인터럽트 · 큐 · Pause/Resume · Stop 4종</li>
         <li>
-          결과 정리 담당: 종료 시 결론·논점·미해결·액션 4섹션 markdown 산출물
+          결과 정리 담당: 종료 시 결론·논점·사용자개입반영·미해결·액션 5섹션
+          markdown 산출물
         </li>
         <li>JSONL append-only 로거 + scrub-check 시크릿 검증</li>
       </ul>
