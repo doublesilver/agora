@@ -565,6 +565,12 @@ function AgentsPane({
                 onChange={(e) => onPatch(c.id, { apiKey: e.target.value })}
                 className="rounded bg-paper-deep px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
               />
+              <ModelSelect
+                agentId={c.id}
+                value={c.model}
+                disabled={!isSetup}
+                onChange={(model) => onPatch(c.id, { model })}
+              />
               <ApiKeyVerify
                 state={authStates[c.id]}
                 hasKey={c.apiKey.trim().length > 0}
@@ -616,6 +622,67 @@ function AgentsPane({
         />
       </div>
     </section>
+  );
+}
+
+/** API 모드 모델 선택 — 어댑터별 프리셋 datalist 제안 + 자유 입력.
+ * 빈 값은 어댑터의 default 모델 사용 (claude-opus-4-7 / gpt-5 / gemini-2.5-pro).
+ * 면접관/사용자가 quota·속도·가격 trade-off에 따라 직접 모델 선택 가능. */
+const MODEL_PRESETS: Record<AgentId, { label: string; models: string[] }> = {
+  claude: {
+    label: "claude-opus-4-7",
+    models: [
+      "claude-opus-4-7",
+      "claude-sonnet-4-6",
+      "claude-haiku-4-5-20251001",
+    ],
+  },
+  codex: {
+    label: "gpt-5",
+    models: ["gpt-5", "gpt-5-mini", "gpt-4.1", "gpt-4.1-mini"],
+  },
+  gemini: {
+    label: "gemini-2.5-pro",
+    models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
+  },
+};
+
+function ModelSelect({
+  agentId,
+  value,
+  disabled,
+  onChange,
+}: {
+  agentId: AgentId;
+  value?: string;
+  disabled: boolean;
+  onChange: (next: string | undefined) => void;
+}) {
+  const preset = MODEL_PRESETS[agentId];
+  const listId = `model-presets-${agentId}`;
+  return (
+    <label className="flex items-center gap-2 text-[11px] text-ink2">
+      <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-ink3">
+        모델
+      </span>
+      <input
+        list={listId}
+        value={value ?? ""}
+        disabled={disabled}
+        placeholder={`기본: ${preset.label}`}
+        onChange={(e) => {
+          const v = e.target.value.trim();
+          onChange(v.length > 0 ? v : undefined);
+        }}
+        className="flex-1 rounded bg-paper-deep px-2 py-1 font-mono text-[11px] text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        aria-label={`${AGENT_LABELS[agentId]} 모델`}
+      />
+      <datalist id={listId}>
+        {preset.models.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
+    </label>
   );
 }
 

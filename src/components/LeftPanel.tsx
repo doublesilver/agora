@@ -13,12 +13,6 @@ const LABEL: Record<AgentId, string> = {
   gemini: "Gemini",
 };
 
-const INITIAL: Record<AgentId, string> = {
-  claude: "C",
-  codex: "X",
-  gemini: "G",
-};
-
 const ACCENT: Record<AgentId, string> = {
   claude: "#C84A2C",
   codex: "#2D7A4F",
@@ -327,14 +321,15 @@ function RosterSummary({
                 c.enabled ? "" : "opacity-50"
               }`}
             >
-              <span>
+              <span className="flex items-center gap-1.5">
                 <span
-                  className="font-bold"
+                  aria-hidden="true"
+                  className="text-[14px] leading-none"
                   style={{ color: c.enabled ? ACCENT[c.id] : undefined }}
                 >
-                  [{INITIAL[c.id]}]
-                </span>{" "}
-                <span className="font-bold">{LABEL[c.id]}</span>{" "}
+                  ●
+                </span>
+                <span className="font-bold">{LABEL[c.id]}</span>
                 <span className="text-ink3">@{c.mode}</span>
               </span>
               <span className="text-[9px] uppercase tracking-[0.18em] text-ink2">

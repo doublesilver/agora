@@ -22,6 +22,8 @@ export interface AgentConfig {
   mode: AgentMode;
   apiKey: string;
   systemPrompt: string;
+  /** API 모드 모델 ID. 미지정 시 어댑터 default. CLI 모드는 무시(CLI 자체 설정 따름). */
+  model?: string;
 }
 
 export interface ChatMessage {

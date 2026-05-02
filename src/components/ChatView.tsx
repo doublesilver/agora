@@ -9,12 +9,6 @@ import type { ChatMessage, SessionView } from "@/lib/client/types";
 import type { AgentId } from "@/lib/agents/types";
 import { friendlyError } from "@/lib/client/friendly-error";
 
-const AGENT_INITIAL: Record<AgentId, string> = {
-  claude: "C",
-  codex: "X",
-  gemini: "G",
-};
-
 const AGENT_LABEL: Record<AgentId, string> = {
   claude: "Claude",
   codex: "Codex",
@@ -250,7 +244,7 @@ function TurnRow({
         style={{ background: accent }}
       >
         <div className="text-[14px] leading-tight tracking-[-0.01em]">
-          [{AGENT_INITIAL[agentId]}] {AGENT_LABEL[agentId]}
+          {AGENT_LABEL[agentId]}
         </div>
         <div className="mt-1 text-[9px] uppercase tracking-[0.18em] opacity-85">
           {AGENT_ROLE[agentId]}

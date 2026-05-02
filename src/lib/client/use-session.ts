@@ -144,6 +144,7 @@ export function useSession() {
             id: c.id,
             mode: c.mode,
             apiKey: c.apiKey,
+            model: c.model,
           })),
           systemPrompts: Object.fromEntries(
             enabled.map((c) => [c.id, c.systemPrompt]),

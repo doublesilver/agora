@@ -15,6 +15,8 @@ export interface AgentSpec {
   id: AgentId;
   mode: AgentMode;
   apiKey?: string; // API 모드일 때 클라 sessionStorage 값. 서버 디스크 미저장.
+  /** 사용자가 ⚙ 설정에서 선택한 모델 ID. 미지정 시 어댑터 default 사용. */
+  model?: string;
 }
 
 export function createAdapter(spec: AgentSpec): AgentAdapter {
@@ -26,11 +28,17 @@ export function createAdapter(spec: AgentSpec): AgentAdapter {
     }
     switch (spec.id) {
       case "claude":
-        return createClaudeApiAdapter({ apiKey: spec.apiKey });
+        return createClaudeApiAdapter({
+          apiKey: spec.apiKey,
+          model: spec.model,
+        });
       case "codex":
-        return createGptApiAdapter({ apiKey: spec.apiKey });
+        return createGptApiAdapter({ apiKey: spec.apiKey, model: spec.model });
       case "gemini":
-        return createGeminiApiAdapter({ apiKey: spec.apiKey });
+        return createGeminiApiAdapter({
+          apiKey: spec.apiKey,
+          model: spec.model,
+        });
     }
   }
 
