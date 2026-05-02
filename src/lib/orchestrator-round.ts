@@ -187,7 +187,10 @@ async function speakOnce(
   return true;
 }
 
-/** 한 라운드 = 화자 회전 순서대로 직렬 호출. anySpeak 반환. */
+/** 한 라운드 = 화자 회전 순서대로 직렬 호출. anySpeak 반환.
+ * 매 호출마다 `roundAbort`를 새로 만든다 — 이전 라운드의 인터럽트 잔재가
+ * 다음 라운드를 즉시 끊지 않게 격리. AGENTS.md A6 핵심: 인터럽트는 라운드만
+ * 끊고 sessionAbort는 살린다 → 사용자 의견 추가 후 새 라운드가 자동 시작. */
 export async function runRound(state: SessionState): Promise<boolean> {
   state.roundAbort = new AbortController();
   const speakerOrder = rotate(state.agents, state.turn);

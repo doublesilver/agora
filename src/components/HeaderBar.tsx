@@ -46,7 +46,7 @@ export function HeaderBar({ view }: Props) {
     <header className="border-b-[3px] border-ink bg-paper">
       {/* Top utility bar — brutal: bg-ink, paper text */}
       <div className="flex items-center justify-between border-b-2 border-ink bg-ink px-5 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-paper">
-        <span>AGORA/FORUM · v0.4.1-rc</span>
+        <span>AGORA/FORUM · SUBMIT 2026-05-03</span>
         <span className="text-paper2">
           //{" "}
           {view.sessionId ? `sid:${view.sessionId.slice(0, 8)}` : "no session"}{" "}

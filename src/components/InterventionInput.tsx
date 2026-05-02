@@ -169,7 +169,7 @@ export function InterventionInput({
             R{view.turn} · {isInterrupt ? "즉시" : "큐"}
           </div>
           <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink3">
-            {isInterrupt ? "⌥+↵ 즉시 반영" : "↵ 다음 라운드"}
+            {isInterrupt ? "↵ 즉시 반영" : "↵ 다음 라운드"}
           </div>
         </div>
         <div className="px-3 py-2">

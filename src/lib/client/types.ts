@@ -31,7 +31,6 @@ export interface ChatMessage {
   turn?: number;
   ts: number;
   interrupted?: boolean;
-  passed?: boolean;
   streaming?: boolean;
   /** user 역할일 때만 set — 'interrupt'면 ⚡ 강조. */
   mode?: InterveneMode;

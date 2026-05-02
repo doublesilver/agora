@@ -1,6 +1,14 @@
 /* 종료 시 최종 산출물(final artifact) 생성 — API 모드 3종 + CLI 모드 3종 모두 지원.
- * speak() 우회: PASS 규약·라운드 시그널 없이 transcript 스냅샷을 한 번만 압축한다.
- * 실시간 요약(rolling)은 호출 비용·UX 노이즈 균형이 맞지 않아 1차 제출 범위에서 제외. */
+ *
+ * 설계 결정 3가지:
+ * 1) speak() 우회 — PASS 규약·라운드 시그널이 압축 의도와 충돌하므로 어댑터의 speak를
+ *    거치지 않고 SDK/CLI 단발 호출로 격리. 인터페이스 일관성을 한 번 깨는 대신 호출
+ *    비용·지연을 분리.
+ * 2) sessionAbort 합성하지 않음 — STOP 직후 즉시 산출물 생성 시작 시 sessionAbort가
+ *    이미 fire 상태라 합성하면 throw로 바로 죽음. 자체 timeout(API 45s / CLI 90s)만
+ *    적용해 산출물이 정상 생성될 시간을 확보.
+ * 3) rolling 요약 미지원 — 호출 비용·UX 노이즈 균형이 맞지 않아 1차 제출 범위에서 제외.
+ *    종료 시 final 산출물 1회로 충분. */
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";

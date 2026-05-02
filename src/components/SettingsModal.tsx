@@ -3,7 +3,7 @@
  * 설정 import/export를 한 곳에 모으고 외관·한도·정보 카테고리를 추가했다. */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { AgentConfig, SessionView } from "@/lib/client/types";
 import { ROLE_SEEDS } from "@/lib/agents/role-seeds";
 import type { AgentId } from "@/lib/agents/types";
@@ -48,12 +48,6 @@ const AGENT_PERSONA: Record<AgentId, string> = {
   claude: "구조화·요약·검토",
   codex: "구현·구체화",
   gemini: "대안·반례·검증",
-};
-
-const AGENT_ACCENT: Record<AgentId, string> = {
-  claude: "text-orange-300",
-  codex: "text-emerald-300",
-  gemini: "text-blue-300",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -369,7 +363,7 @@ export function SettingsModal({
         aria-modal="true"
         aria-labelledby="settings-modal-title"
         onClick={(e) => e.stopPropagation()}
-        className="flex h-[85vh] w-full max-w-4xl overflow-hidden rounded-xl border border-ink bg-paper shadow-2xl"
+        className="flex h-[85vh] w-full max-w-4xl overflow-hidden border-[3px] border-ink bg-paper"
       >
         <nav
           aria-label="설정 카테고리"
@@ -526,9 +520,7 @@ function AgentsPane({
               disabled={!isSetup}
               onChange={(e) => onPatch(c.id, { enabled: e.target.checked })}
             />
-            <span className={`font-medium ${AGENT_ACCENT[c.id]}`}>
-              {AGENT_LABELS[c.id]}
-            </span>
+            <span className="font-bold text-ink">{AGENT_LABELS[c.id]}</span>
             <span className="text-[10px] text-ink0">{AGENT_PERSONA[c.id]}</span>
             <select
               value={c.mode}
@@ -643,24 +635,24 @@ function ApiKeyVerify({
   }
   if (phase === "checking") {
     return (
-      <span className="self-start text-[11px] text-amber-300">⏳ 검증 중…</span>
+      <span className="self-start text-[11px] text-ink2">⏳ 검증 중…</span>
     );
   }
   if (phase === "valid") {
     return (
-      <details className="rounded bg-emerald-950/40 px-2 py-1 text-[11px] text-emerald-200 ring-1 ring-emerald-900/60">
-        <summary className="cursor-pointer select-none font-medium">
-          🟢 인증 성공
+      <details className="border-2 border-ink bg-paper2 px-2 py-1 text-[11px] text-ink">
+        <summary className="cursor-pointer select-none font-bold">
+          ✓ 인증 성공
         </summary>
         {state?.detail && (
-          <p className="mt-1 font-mono text-[10px] leading-snug text-emerald-300/80">
+          <p className="mt-1 font-mono text-[10px] leading-snug text-ink2">
             {state.detail}
           </p>
         )}
         <button
           type="button"
           onClick={onCheck}
-          className="mt-1 text-[10px] text-emerald-300/80 underline hover:text-emerald-200"
+          className="mt-1 text-[10px] text-ink2 underline hover:text-ink"
         >
           다시 검증
         </button>
@@ -669,20 +661,18 @@ function ApiKeyVerify({
   }
   const fe = friendlyError(state?.error ?? "");
   return (
-    <details className="rounded bg-red-950/40 px-2 py-1 text-[11px] text-red-200 ring-1 ring-red-900/60">
-      <summary className="cursor-pointer select-none font-medium">
-        🔴 {fe.title}
+    <details className="border-2 border-ink bg-ink px-2 py-1 text-[11px] text-paper">
+      <summary className="cursor-pointer select-none font-bold">
+        ‖ {fe.title}
       </summary>
-      {fe.hint && (
-        <p className="mt-1 leading-snug text-red-300/90">{fe.hint}</p>
-      )}
-      <p className="mt-1 font-mono text-[10px] leading-snug text-red-400/70">
+      {fe.hint && <p className="mt-1 leading-snug text-paper2">{fe.hint}</p>}
+      <p className="mt-1 font-mono text-[10px] leading-snug text-paper2">
         {fe.raw}
       </p>
       <button
         type="button"
         onClick={onCheck}
-        className="mt-1 text-[10px] text-red-300/80 underline hover:text-red-200"
+        className="mt-1 text-[10px] text-paper underline hover:bg-paper hover:text-ink"
       >
         다시 시도
       </button>
@@ -709,38 +699,38 @@ function CliStatusBlock({
   }
   if (check.found) {
     return (
-      <div className="flex flex-col gap-1 rounded bg-emerald-950/40 p-2 text-[11px] text-emerald-200 ring-1 ring-emerald-900/60">
-        <div className="font-medium">
-          🟢 {check.id} CLI 사용 가능
+      <div className="flex flex-col gap-1 border-2 border-ink bg-paper2 p-2 text-[11px] text-ink">
+        <div className="font-bold">
+          ✓ {check.id} CLI 사용 가능
           {check.overridden && (
-            <span className="ml-2 rounded bg-emerald-900/60 px-1.5 py-0.5 text-[9px] uppercase tracking-wider">
+            <span className="ml-2 border border-ink bg-paper px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-ink2">
               env override
             </span>
           )}
         </div>
-        <div className="font-mono text-[10px] text-emerald-300/80">
+        <div className="font-mono text-[10px] text-ink2">
           {check.path ? `${check.path} · ` : ""}
           {check.version}
         </div>
-        <div className="text-[10px] text-emerald-300/60">
+        <div className="text-[10px] text-ink3">
           본인 구독·OAuth 인증을 그대로 활용. 라운드 시작 시 인증이 실패하면
-          빨간 에러로 표시됩니다.
+          에러로 표시됩니다.
         </div>
       </div>
     );
   }
   return (
-    <div className="flex flex-col gap-1 rounded bg-red-950/40 p-2 text-[11px] text-red-200 ring-1 ring-red-900/60">
-      <div className="font-medium">🔴 {check.id} CLI 미설치 또는 PATH 누락</div>
-      <details className="text-red-300/80">
+    <div className="flex flex-col gap-1 border-2 border-ink bg-ink p-2 text-[11px] text-paper">
+      <div className="font-bold">‖ {check.id} CLI 미설치 또는 PATH 누락</div>
+      <details className="text-paper2">
         <summary className="cursor-pointer select-none">
           💡 설치·로그인 방법
         </summary>
-        <div className="mt-1 whitespace-pre-wrap font-mono text-[10px] text-red-300/90">
+        <div className="mt-1 whitespace-pre-wrap font-mono text-[10px] text-paper2">
           {check.hint}
         </div>
       </details>
-      <div className="text-[10px] text-red-300/60">
+      <div className="text-[10px] text-paper2">
         설치 후 위의 ↻ 새로고침. 또는 API 모드로 전환하세요.
       </div>
     </div>
@@ -793,16 +783,16 @@ function SummarizerPane({
                 key={c.id}
                 type="button"
                 onClick={() => setSummarizerId(selected ? null : c.id)}
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] ring-1 ${
+                className={`flex items-center gap-1.5 border-2 border-ink px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] ${
                   selected
-                    ? "bg-blue-700/40 text-blue-100 ring-blue-500"
-                    : "bg-paper2 text-ink ring-ink hover:ring-ink"
+                    ? "bg-ink text-paper"
+                    : "bg-paper2 text-ink hover:bg-ink hover:text-paper"
                 }`}
               >
-                <span>{selected ? "🟦" : "⬜"}</span>
+                <span>{selected ? "[●]" : "[ ]"}</span>
                 <span>{modeIcon}</span>
                 <span>{AGENT_LABELS[c.id]}</span>
-                {ok && <span className="text-emerald-300">🟢</span>}
+                {ok && <span>✓</span>}
               </button>
             );
           })}

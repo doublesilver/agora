@@ -1,6 +1,8 @@
-/* JSONL append-only 로거 — AGENTS.md JSONL 스키마 단일 출처. */
+/* JSONL append-only 로거 — AGENTS.md JSONL 스키마 단일 출처.
+ * 한 세션당 한 파일(`logs/{sessionId}.jsonl`)에 한 줄 = 한 이벤트로 append.
+ * 시크릿 포함 가능 필드는 emitEvent 호출자가 미리 redact (logger는 그대로 직렬화). */
 import { mkdirSync, createWriteStream, type WriteStream } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import type { OrchestratorEvent } from "./session-store";
 
 const LOG_DIR = join(process.cwd(), "logs");
@@ -22,18 +24,10 @@ export class JsonlLogger {
     this.stream.write(line + "\n");
   }
 
+  /** 세션 종료 후 closer 체인에서 호출. close 후 추가 log()는 silent drop. */
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
     await new Promise<void>((resolve) => this.stream.end(resolve));
   }
-
-  /** 로그 파일의 절대 경로. /api/export/jsonl 직접 스트리밍에 사용. */
-  get filePath(): string {
-    return join(LOG_DIR, `${this.sessionId}.jsonl`);
-  }
-}
-
-export function ensureLogDir(): void {
-  mkdirSync(LOG_DIR, { recursive: true });
 }

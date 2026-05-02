@@ -90,7 +90,7 @@ Claude (Anthropic) / Codex (OpenAI) / Gemini (Google) — 사용자가 이 중 *
 
 - **에이전트 타임아웃**: 라운드당 한 에이전트가 60초 안에 첫 토큰을 못 보내면 abort → 그 라운드는 PASS 처리 + `agent_timeout` 이벤트 로그. 60초는 상수 `AGENT_FIRST_TOKEN_TIMEOUT_MS = 60_000`로 분리. CLI cold-start(~25s) + 추론 latency를 흡수하기 위한 값.
 - **에러 처리**: SDK throw 또는 CLI 비정상 종료 시 그 라운드 PASS + UI에 빨간 에러 라벨 한 줄("Codex: <짧은 메시지>"). 자동 재시도 없음. 다음 라운드부터 정상 시도. `agent_error` 이벤트 로그.
-- **토큰 예산 캡**: 세션 전체 누적 입력+출력 토큰 `MAX_SESSION_TOKENS = 50_000` 도달 시 자동 STOP, 사유 `budget_exceeded`. 헤더 바에 진행률 표시. 카운팅은 SDK가 반환하는 usage 메타로 누적, CLI 모드는 응답 글자 수의 1/4 (대략) 추정 폴백.
+- **토큰 예산 캡**: 세션 전체 누적 입력+출력 토큰 `MAX_SESSION_TOKENS = 100_000` 도달 시 자동 STOP, 사유 `budget_exceeded` (한 라운드 평균 6~12k이라 시연·결과 산출물까지 6~12라운드 이상 도달 가능, 안전 net 역할). 헤더 바에 진행률 표시. 카운팅은 SDK가 반환하는 usage 메타로 누적, CLI 모드는 응답 글자 수의 1/4 (대략) 추정 폴백. 사용자가 ⚙ 설정에서 1k~1M 사이로 조정 가능.
 - **transcript 무제한**: 슬라이딩 윈도우·요약 도입하지 않음. 토큰 캡이 먼저 도달하므로 컨텍스트 폭주 방지는 캡에 위임.
 - **PASS 판정**: 응답을 `trim()`해서 정확히 문자열 `[PASS]`이면 pass. 그 외 발화로 처리. 시스템 프롬프트 말미에 다음 문장 강제 주입(어댑터 레이어):
   ```

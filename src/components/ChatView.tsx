@@ -359,7 +359,7 @@ function InterruptRow({ message, idx }: { message: ChatMessage; idx: number }) {
           {isInterrupt ? "즉시" : "큐"}
         </div>
         <div className="mt-auto pt-2 text-[9px] uppercase tracking-[0.2em]">
-          {isInterrupt ? "⌥+↵ 즉시 반영" : "⏎ 큐 추가"}
+          {isInterrupt ? "↵ 즉시 반영" : "⏎ 큐 추가"}
         </div>
       </div>
       <div className="border-r border-paper2/20 px-3.5 py-3 leading-[1.55]">

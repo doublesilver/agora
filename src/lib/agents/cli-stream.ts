@@ -161,20 +161,17 @@ export function runCliOneshot(
       }
       if (code !== 0) {
         // stderr는 OAuth refresh 토큰·내부 endpoint·세션 ID 등을 echo하는
-        // CLI 사례가 보고돼 있어 길이만 surface한다. 디버깅이 필요하면
-        // 서버 stdout(아래 console.error)에서 raw로 확인.
+        // CLI 사례가 보고돼 있어 raw 출력은 절대 안 한다. 길이만 surface.
+        // 디버깅이 필요하면 STDERR 그대로 노출하는 디버그 빌드를 별도로 켤 것.
         if (stderr.length > 0) {
           console.error(
-            `[cli-stream] ${command} stderr (${stderr.length}b):`,
-            stderr,
+            `[cli-stream] ${command} stderr suppressed (${stderr.length}b)`,
           );
         }
         reject(
           new Error(
             `${command} CLI exited code=${code}${
-              stderr.length > 0
-                ? ` (stderr suppressed, ${stderr.length}b — see server log)`
-                : ""
+              stderr.length > 0 ? ` (stderr suppressed, ${stderr.length}b)` : ""
             }`,
           ),
         );

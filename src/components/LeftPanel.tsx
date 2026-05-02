@@ -137,9 +137,9 @@ export function LeftPanel(props: Props) {
               aria-label="토론 주제"
               placeholder={
                 canStart
-                  ? "↵ START · ⇧↵ NEWLINE"
+                  ? "↵ 시작 · ⇧↵ 줄바꿈"
                   : enabledCount < 2
-                    ? "// ACTIVE_AGENTS<2 — set in ⚙"
+                    ? "// 활성 에이전트 < 2 — ⚙에서 활성화"
                     : "// 토론 주제를 한 줄로"
               }
               className="h-20 resize-none border border-ink bg-paper p-2 text-[12px] leading-relaxed text-ink outline-none placeholder:text-ink3"
@@ -162,7 +162,7 @@ export function LeftPanel(props: Props) {
             </button>
             {enabledCount < 2 && (
               <p className="text-[10px] uppercase tracking-[0.16em] text-ink3">
-                // ACTIVATE ≥2 AGENTS via ⚙ SETTINGS
+                // ⚙ 설정에서 AI 에이전트 2개 이상 활성화 필요
               </p>
             )}
           </section>

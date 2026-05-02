@@ -30,15 +30,19 @@ function formatTime(ts: number): string {
   return d.toLocaleTimeString("ko-KR", { hour12: false });
 }
 
+/** ActivityLog 항목 클릭 → 해당 발화 행으로 스크롤 + 1.4s 하이라이터 플래시.
+ * Brutalist 시안에 맞춰 ring(둥근 그림자형) 대신 globals.css의
+ * .animate-flash-amber 키프레임으로 하단부터 highlight 색이 페이드아웃되게. */
 function jumpToBubble(turn: number, agentId: string): void {
   const matches = document.querySelectorAll<HTMLElement>(
     `article[data-turn="${turn}"][data-agent="${agentId}"]`,
   );
   const target = matches[matches.length - 1];
-  target?.scrollIntoView({ behavior: "smooth", block: "center" });
-  target?.classList.add("ring-2", "ring-ink");
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.classList.add("animate-flash-amber");
   setTimeout(() => {
-    target?.classList.remove("ring-2", "ring-ink");
+    target.classList.remove("animate-flash-amber");
   }, 1400);
 }
 
@@ -85,7 +89,7 @@ export function ActivityLog({ view }: Props) {
         ) : (
           <ul className="flex flex-col gap-0.5">
             {view.activityLog.map((entry) => {
-              const clickable = entry.jumpTo !== undefined;
+              const jt = entry.jumpTo;
               const inner = (
                 <>
                   <span className="shrink-0 text-[9px] uppercase tracking-[0.14em] text-ink3">
@@ -100,7 +104,7 @@ export function ActivityLog({ view }: Props) {
                   <span className={`break-words ${TONE_CLASS[entry.tone]}`}>
                     {entry.text}
                   </span>
-                  {clickable && (
+                  {jt && (
                     <span
                       aria-hidden="true"
                       className="ml-auto shrink-0 text-[9px] text-ink3"
@@ -112,12 +116,10 @@ export function ActivityLog({ view }: Props) {
               );
               return (
                 <li key={entry.id} className="leading-snug">
-                  {clickable ? (
+                  {jt ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        jumpToBubble(entry.jumpTo!.turn, entry.jumpTo!.agentId)
-                      }
+                      onClick={() => jumpToBubble(jt.turn, jt.agentId)}
                       className="flex w-full items-start gap-1.5 border border-transparent px-1 py-0.5 text-left hover:border-ink hover:bg-paper2"
                       title="해당 발화로 이동"
                     >
