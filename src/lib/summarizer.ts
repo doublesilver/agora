@@ -54,13 +54,20 @@ interface SpecLookup {
   summarizerId: AgentId;
   apiKey?: string;
   mode: "api" | "cli";
+  /** 사용자가 ⚙ AI 에이전트에서 지정한 모델 ID. 미지정 시 어댑터 default 사용. */
+  model?: string;
 }
 
 function findSpec(state: SessionState): SpecLookup | null {
   if (!state.summarizerId) return null;
   const spec = state.agentSpecs.find((s) => s.id === state.summarizerId);
   if (!spec) return null;
-  return { summarizerId: spec.id, apiKey: spec.apiKey, mode: spec.mode };
+  return {
+    summarizerId: spec.id,
+    apiKey: spec.apiKey,
+    mode: spec.mode,
+    model: spec.model,
+  };
 }
 
 function transcriptText(events: TranscriptEvent[]): string {
@@ -72,11 +79,12 @@ async function callClaudeApi(
   systemPrompt: string,
   userText: string,
   signal: AbortSignal,
+  model: string,
 ): Promise<string> {
   const client = new Anthropic({ apiKey });
   const res = await client.messages.create(
     {
-      model: "claude-opus-4-7",
+      model,
       max_tokens: 1024,
       system: systemPrompt,
       messages: [{ role: "user", content: userText }],
@@ -92,11 +100,12 @@ async function callGptApi(
   systemPrompt: string,
   userText: string,
   signal: AbortSignal,
+  model: string,
 ): Promise<string> {
   const client = new OpenAI({ apiKey });
   const res = await client.chat.completions.create(
     {
-      model: "gpt-5",
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userText },
@@ -113,10 +122,11 @@ async function callGeminiApi(
   systemPrompt: string,
   userText: string,
   signal: AbortSignal,
+  model: string,
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   const res = await ai.models.generateContent({
-    model: "gemini-2.5-pro",
+    model,
     config: { systemInstruction: systemPrompt, abortSignal: signal },
     contents: [{ role: "user", parts: [{ text: userText }] }],
   });
@@ -193,6 +203,13 @@ async function callSummarizer(
       if (!spec.apiKey) {
         throw new Error("summarizer: apiKey 누락 — 요약 담당 키 확인.");
       }
+      // 사용자 ⚙ 설정 모델 우선, 없으면 어댑터 default와 동일한 fallback.
+      const apiDefault: Record<AgentId, string> = {
+        claude: "claude-opus-4-7",
+        codex: "gpt-5",
+        gemini: "gemini-2.5-pro",
+      };
+      const model = spec.model ?? apiDefault[spec.summarizerId];
       switch (spec.summarizerId) {
         case "claude":
           return await callClaudeApi(
@@ -200,6 +217,7 @@ async function callSummarizer(
             systemPrompt,
             userText,
             ac.signal,
+            model,
           );
         case "codex":
           return await callGptApi(
@@ -207,6 +225,7 @@ async function callSummarizer(
             systemPrompt,
             userText,
             ac.signal,
+            model,
           );
         case "gemini":
           return await callGeminiApi(
@@ -214,6 +233,7 @@ async function callSummarizer(
             systemPrompt,
             userText,
             ac.signal,
+            model,
           );
       }
     } else {

@@ -401,7 +401,7 @@ function FinalArtifactCard({ view }: { view: SessionView }) {
             // FINAL ARTIFACT · COMPILED {compiledAt}
           </div>
           <div className="mt-2 font-mono text-[24px] font-extrabold uppercase leading-none tracking-[-0.03em] text-ink">
-            <span className="bf-highlight">결론 호외</span>
+            <span className="bf-highlight">최종 결론</span>
           </div>
           <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink3">
             BY {AGENT_LABEL[fa.summarizerId]} · {AGENT_ROLE[fa.summarizerId]} ·
@@ -448,7 +448,7 @@ function SetupHints() {
       <div className="grid grid-cols-[1fr_360px] border-b-2 border-ink">
         <div className="flex flex-col justify-between border-r-2 border-ink px-8 py-10">
           <div className="font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-ink2">
-            // BRIEF · 호외 — 멀티 AI 토론
+            // BRIEF — 멀티 AI 토론
           </div>
           <h1 className="mt-4 font-mono text-[120px] font-black uppercase leading-[0.84] tracking-[-0.06em] text-ink">
             AGORA<span className="text-ink3">::</span>
@@ -472,7 +472,7 @@ function SetupHints() {
           </p>
           <p className="font-mono text-[12px] leading-[1.65] text-ink2">
             모든 토큰은 실시간으로 스트리밍되고, 모든 이벤트는 JSONL로 기록되며,
-            토론 종료 시 결과 정리 담당이 한 장의 호외로 압축합니다.
+            토론 종료 시 결과 정리 담당이 5섹션 markdown으로 압축합니다.
           </p>
           <div className="border-t-2 border-ink pt-3 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-ink">
             ※ 사용자 의견 — 언제든 환영
