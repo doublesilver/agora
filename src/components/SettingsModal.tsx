@@ -282,6 +282,13 @@ export function SettingsModal({
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(null);
+  // onClose가 매 부모 렌더마다 새 함수 reference면 (예: 인라인 () => ...)
+  // useEffect deps에 두면 매 렌더마다 재실행되어 textarea 입력 중 포커스가
+  // 첫 nav 버튼으로 점프한다. ref로 우회 — open 토글에만 반응.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -297,7 +304,7 @@ export function SettingsModal({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -308,7 +315,7 @@ export function SettingsModal({
         triggerRef.current.focus();
       }
     };
-  }, [open, onClose]);
+  }, [open]);
 
   async function refreshCliStatus() {
     setCliLoading(true);
