@@ -114,8 +114,9 @@ export function InterventionInput({
           }`}
         >
           <span className="text-[10px]">{isInterrupt ? "[●]" : "[ ]"}</span>
+          {/* px-1을 항상 reserve해 토글 시 레이아웃 점프 방지 — bg만 토글. */}
           <span
-            className={`font-bold ${isInterrupt ? "bf-highlight px-1" : ""}`}
+            className={`px-1 font-bold ${isInterrupt ? "bg-highlight text-ink" : ""}`}
           >
             ⚡ IMMEDIATE · 즉시
           </span>
@@ -131,7 +132,7 @@ export function InterventionInput({
         >
           <span className="text-[10px]">{!isInterrupt ? "[●]" : "[ ]"}</span>
           <span
-            className={`font-bold ${!isInterrupt ? "bf-highlight px-1" : ""}`}
+            className={`px-1 font-bold ${!isInterrupt ? "bg-highlight text-ink" : ""}`}
           >
             ⏎ QUEUE · 큐
           </span>

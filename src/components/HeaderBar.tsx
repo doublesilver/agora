@@ -111,7 +111,7 @@ export function HeaderBar({ view }: Props) {
                 {view.sessionTokens.toLocaleString()}
               </span>
               /{tokenMax.toLocaleString()}{" "}
-              <span className={pct >= 90 ? "bg-ink px-1 text-paper" : ""}>
+              <span className={`px-1 ${pct >= 90 ? "bg-ink text-paper" : ""}`}>
                 ({pct}%)
               </span>
             </span>
