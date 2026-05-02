@@ -108,6 +108,17 @@ export function useSession() {
         // 종료가 깔끔. 새 세션은 페이지 새로고침으로 시작.
         es.close();
         if (esRef.current === es) esRef.current = null;
+        // 사용자에게 무성 실패 대신 활동 로그에 1줄 surface — 사유를 모르고
+        // 멈췄다고 오해하지 않도록.
+        setView((prev) => ({
+          ...prev,
+          activityLog: appendActivity(prev.activityLog, {
+            id: `stream-closed-${Date.now()}`,
+            ts: Date.now(),
+            tone: "warn",
+            text: "스트림 연결이 끊겼습니다 — 새 세션으로 시작하세요",
+          }),
+        }));
       };
     },
     [applyEvent],
@@ -375,13 +386,16 @@ function activityFromEvent(e: OrchestratorEvent): ActivityEntry | null {
 }
 
 function reduce(prev: SessionView, e: OrchestratorEvent): SessionView {
-  const next = applyEvent(prev, e);
+  const next = reduceEvent(prev, e);
   const entry = activityFromEvent(e);
   if (!entry) return next;
   return { ...next, activityLog: appendActivity(next.activityLog, entry) };
 }
 
-function applyEvent(prev: SessionView, e: OrchestratorEvent): SessionView {
+/** SSE 이벤트 1건 → SessionView state 갱신. 순수 함수.
+ * hook 내부 useCallback `applyEvent`(이벤트 1건 처리 + setView 호출)와 이름이
+ * 충돌하지 않도록 reduceEvent로 분리. */
+function reduceEvent(prev: SessionView, e: OrchestratorEvent): SessionView {
   switch (e.type) {
     case "session_start":
       return {

@@ -3,7 +3,7 @@
  * 설정 import/export를 한 곳에 모으고 외관·한도·정보 카테고리를 추가했다. */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AgentConfig, SessionView } from "@/lib/client/types";
 import { ROLE_SEEDS } from "@/lib/agents/role-seeds";
 import type { AgentId } from "@/lib/agents/types";
@@ -280,8 +280,20 @@ export function SettingsModal({
     view.status === "idle" ||
     view.status === "paused";
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<Element | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    // 모달 열릴 때 트리거(⚙ 버튼) 기억해두고, 첫 nav 버튼에 포커스 — 키보드
+    // 사용자가 시작점을 잃지 않도록. 닫을 때 트리거로 포커스 복귀.
+    triggerRef.current = document.activeElement;
+    const t = setTimeout(() => {
+      const firstBtn = dialogRef.current?.querySelector<HTMLElement>(
+        "nav button[aria-current], nav button",
+      );
+      firstBtn?.focus();
+    }, 0);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -289,7 +301,13 @@ export function SettingsModal({
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+      if (triggerRef.current instanceof HTMLElement) {
+        triggerRef.current.focus();
+      }
+    };
   }, [open, onClose]);
 
   async function refreshCliStatus() {
@@ -359,6 +377,7 @@ export function SettingsModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-modal-title"

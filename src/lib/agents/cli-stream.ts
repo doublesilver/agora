@@ -115,6 +115,18 @@ export function isTerminationSignal(
   return signal === "SIGTERM" || code === 143 || code === 130;
 }
 
+/** Gemini CLI는 stdout 첫 줄들에 자기 환경 배너를 토한다 (예: "  Gemini CLI — ...").
+ * 2-space 들여쓴 라인 + 빈 줄 prefix를 잘라낸 markdown/text를 반환.
+ * gemini-cli stream-json은 라인 단위 JSON 필터로 자체 처리하지만, summarizer의
+ * 단발 호출(text mode)은 이 헬퍼로 정리해야 markdown 산출물에 배너가 안 섞인다. */
+export function stripGeminiBanner(raw: string): string {
+  const lines = raw.split("\n");
+  let i = 0;
+  while (i < lines.length && /^\s+\S/.test(lines[i])) i++;
+  while (i < lines.length && lines[i].trim() === "") i++;
+  return lines.slice(i).join("\n").trim();
+}
+
 /** 단발 호출 — stdout을 통째로 모아 trim 후 반환. 비스트리밍 final 산출물 등에 사용.
  * - signal abort 또는 timeoutMs 도달 시 SIGTERM → reject('aborted')
  * - exit code !== 0 시 stderr 마지막 500자 포함하여 reject. */

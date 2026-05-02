@@ -88,18 +88,6 @@ samp,
   outline-offset: 2px;
 }
 
-/* Hard rule helper — 시안 BFRule 효과. */
-.bf-rule-dash {
-  font-family: var(--font-mono);
-  color: var(--ink);
-  letter-spacing: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  user-select: none;
-  font-size: 11px;
-  line-height: 1;
-}
-
 @keyframes bubble-in {
   from {
     opacity: 0;

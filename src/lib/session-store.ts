@@ -163,16 +163,9 @@ export function emitEvent(state: SessionState, event: OrchestratorEvent): void {
   }
 }
 
-/** AbortSignal 여러 개 합성 — 어느 하나라도 abort되면 결과 시그널도 abort. */
+/** AbortSignal 여러 개 합성 — 어느 하나라도 abort되면 결과 시그널도 abort.
+ * Node 20+의 네이티브 `AbortSignal.any`를 사용 — 합성 시그널이 GC되면 입력
+ * 시그널의 listener도 자동 정리되어 라운드 누적 listener leak이 없다. */
 export function anySignal(signals: AbortSignal[]): AbortSignal {
-  // node 20+에 AbortSignal.any 존재. 타입 호환 위해 직접 구성.
-  const ac = new AbortController();
-  for (const s of signals) {
-    if (s.aborted) {
-      ac.abort(s.reason);
-      return ac.signal;
-    }
-    s.addEventListener("abort", () => ac.abort(s.reason), { once: true });
-  }
-  return ac.signal;
+  return AbortSignal.any(signals);
 }

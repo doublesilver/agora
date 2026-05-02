@@ -7,10 +7,13 @@ import { type SessionState, emitEvent } from "./session-store";
 
 const now = (): number => Date.now();
 
+/** 모듈 상단 const로 끌어올려 매 호출 컴파일 비용 제거. */
+const ABORTED_RE = /aborted/i;
+
 function isAbortError(err: unknown): boolean {
   return (
     err instanceof Error &&
-    (err.name === "AbortError" || /aborted/i.test(err.message ?? ""))
+    (err.name === "AbortError" || ABORTED_RE.test(err.message ?? ""))
   );
 }
 

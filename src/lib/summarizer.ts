@@ -14,7 +14,11 @@ import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
 import type { AgentId, TranscriptEvent } from "./agents/types";
 import { serializeTranscript } from "./agents/adapter-helpers";
-import { resolveCliBin, runCliOneshot } from "./agents/cli-stream";
+import {
+  resolveCliBin,
+  runCliOneshot,
+  stripGeminiBanner,
+} from "./agents/cli-stream";
 import { emitEvent, type SessionState } from "./session-store";
 
 const now = (): number => Date.now();
@@ -162,12 +166,7 @@ async function callGeminiCli(
     signal,
     CLI_TIMEOUT_MS,
   );
-  // 응답 앞 배너(2-space indent 라인 + 빈 줄) 제거. 시안: "  Gemini CLI — ..." 3줄.
-  const lines = raw.split("\n");
-  let i = 0;
-  while (i < lines.length && /^\s+\S/.test(lines[i])) i++;
-  while (i < lines.length && lines[i].trim() === "") i++;
-  return lines.slice(i).join("\n").trim();
+  return stripGeminiBanner(raw);
 }
 
 async function callSummarizer(

@@ -292,6 +292,10 @@ export async function runSession(state: SessionState): Promise<void> {
   }
 }
 
+/** signal 또는 외부 notifier 어느 쪽이 먼저 트리거되든 깨어나는 await용 헬퍼.
+ * paused/idle 대기 시 사용. signal aborted를 즉시 resolve하므로 STOP에 즉시 깨어남.
+ * resolve 후 listener는 once 옵션으로 자동 cleanup, 또는 abort 안 일어나고 함수가
+ * resolve되면 GC가 promise·listener를 함께 회수. */
 function abortPromise(signal: AbortSignal): Promise<void> {
   return new Promise<void>((resolve) => {
     if (signal.aborted) {
