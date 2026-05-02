@@ -108,17 +108,22 @@ export function useSession() {
         // 종료가 깔끔. 새 세션은 페이지 새로고침으로 시작.
         es.close();
         if (esRef.current === es) esRef.current = null;
-        // 사용자에게 무성 실패 대신 활동 로그에 1줄 surface — 사유를 모르고
-        // 멈췄다고 오해하지 않도록.
-        setView((prev) => ({
-          ...prev,
-          activityLog: appendActivity(prev.activityLog, {
-            id: `stream-closed-${Date.now()}`,
-            ts: Date.now(),
-            tone: "warn",
-            text: "스트림 연결이 끊겼습니다 — 새 세션으로 시작하세요",
-          }),
-        }));
+        // 정상 session_end로 서버가 controller.close()한 경우(status가
+        // 'stopped'로 갱신된 후 EventSource가 close를 error로 통보)에는 사용자
+        // 토스트를 띄우지 않는다. 비정상 끊김 — running/idle/paused 도중에만
+        // 활동 로그에 1줄 surface해 사유 모르고 멈췄다고 오해하지 않도록.
+        setView((prev) => {
+          if (prev.status === "stopped" || prev.status === "setup") return prev;
+          return {
+            ...prev,
+            activityLog: appendActivity(prev.activityLog, {
+              id: `stream-closed-${Date.now()}`,
+              ts: Date.now(),
+              tone: "warn",
+              text: "스트림 연결이 끊겼습니다 — 새 세션으로 시작하세요",
+            }),
+          };
+        });
       };
     },
     [applyEvent],
