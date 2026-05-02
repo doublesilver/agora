@@ -72,12 +72,15 @@ interface Appearance {
   fontSize: FontSize;
   density: Density;
   showInput: boolean;
+  /** 긴 발화(800자 초과) 자동 접기. false면 항상 펼쳐 보여줌. */
+  autoFold: boolean;
 }
 
 const APPEARANCE_DEFAULT: Appearance = {
   fontSize: "M",
   density: "cozy",
   showInput: true,
+  autoFold: true,
 };
 
 const APPEARANCE_KEY = "agora.appearance.v1";
@@ -95,6 +98,7 @@ function readAppearance(): Appearance {
           : "M",
       density: parsed.density === "compact" ? "compact" : "cozy",
       showInput: parsed.showInput !== false,
+      autoFold: parsed.autoFold !== false,
     };
   } catch {
     return APPEARANCE_DEFAULT;
@@ -994,6 +998,42 @@ function AppearancePane({
         <p className="text-[10px] text-ink3">
           비활성 시 채팅 화면이 더 넓어집니다. 인터럽트가 필요하면 다시
           활성화하거나 좌측 컨트롤로 종료/일시정지.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink0">
+          긴 발화 자동 접기
+        </h3>
+        <div className="flex gap-1.5">
+          {(
+            [
+              { id: true, label: "활성", hint: "800자 초과 시 6줄로 접기" },
+              { id: false, label: "비활성", hint: "항상 펼쳐 보여줌" },
+            ] as { id: boolean; label: string; hint: string }[]
+          ).map((d) => {
+            const selected = value.autoFold === d.id;
+            return (
+              <button
+                key={String(d.id)}
+                type="button"
+                onClick={() => onChange({ ...value, autoFold: d.id })}
+                aria-pressed={selected}
+                className={`flex flex-col items-start gap-0.5 rounded-md px-3 py-2 ring-1 transition-colors ${
+                  selected
+                    ? "bg-paper-deep text-ink ring-ink"
+                    : "bg-paper2 text-ink2 ring-ink hover:bg-paper2/80"
+                }`}
+              >
+                <span className="font-medium">{d.label}</span>
+                <span className="text-[10px] text-ink0">{d.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-ink3">
+          접힌 발화는 [▼ 펼치기] 버튼으로 언제든 전체 보기. 자동 접기 비활성 시
+          긴 발화도 처음부터 끝까지 한 번에 표시됩니다.
         </p>
       </div>
     </section>

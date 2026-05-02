@@ -117,6 +117,8 @@ const MARKDOWN_COMPONENTS = {
 interface Props {
   view: SessionView;
   density?: "compact" | "cozy";
+  /** 800자 초과 발화 자동 접기. 사용자 토글로 false 가능. 기본 true. */
+  autoFold?: boolean;
 }
 
 function pad3(n: number): string {
@@ -132,7 +134,7 @@ function formatTime(ts: number): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
-export function ChatView({ view, density = "cozy" }: Props) {
+export function ChatView({ view, density = "cozy", autoFold = true }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -180,6 +182,7 @@ export function ChatView({ view, density = "cozy" }: Props) {
                 idx={i}
                 expanded={expanded.has(m.id)}
                 onToggleExpand={() => toggleExpand(m.id)}
+                autoFold={autoFold}
               />
             ),
           )}
@@ -208,11 +211,13 @@ function TurnRow({
   idx,
   expanded,
   onToggleExpand,
+  autoFold,
 }: {
   message: ChatMessage;
   idx: number;
   expanded: boolean;
   onToggleExpand: () => void;
+  autoFold: boolean;
 }) {
   if (message.role === "user") return null;
   const agentId = message.role as AgentId;
@@ -220,6 +225,7 @@ function TurnRow({
   const live = !!message.streaming;
   const banded = idx % 2 === 0 ? "bg-paper" : "bg-paper2";
   const shouldCollapse =
+    autoFold &&
     !live &&
     !expanded &&
     !message.interrupted &&

@@ -129,7 +129,11 @@ export default function Home() {
       <main className="flex flex-1 flex-col overflow-hidden">
         <HeaderBar view={view} />
         <AgentStrip view={view} configs={configs} />
-        <ChatView view={view} density={appearance.density} />
+        <ChatView
+          view={view}
+          density={appearance.density}
+          autoFold={appearance.autoFold}
+        />
         {appearance.showInput ? (
           <InterventionInput
             view={view}
