@@ -297,4 +297,4 @@ npm run build                           # production 컴파일 (11 routes)
 
 본 저장소는 채용 과제 제출용 단일 작가 작품. 외부 코드 기여는 받지 않습니다.
 
-— 이은석 · team.dev@ingstory.kr
+— 이은석 · korea5410@gmail.com
