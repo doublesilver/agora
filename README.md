@@ -1,200 +1,300 @@
-# Agora — 사용자가 끼어들 수 있는 멀티 AI 토론 도구
+# Agora — 사용자가 함께 참여하는 멀티 AI 토론 도구
 
 > 베이글코드 신작팀 AI 개발자 채용 과제 제출물 (마감 2026-05-03 23:59 KST).
 
-여러 AI 에이전트(Claude·GPT·Gemini)가 **직렬 라운드**로 자유 메시지를 주고받으며 사용자의 프롬프트를 협업 처리하는 웹 도구. 사용자는 토론에 **즉시 끼어들거나(interrupt)·다음 차례에 보태거나(queue)·일시정지/재개·종료**할 수 있고 전체 transcript를 실시간으로 관찰한다.
+여러 AI 에이전트(Claude · GPT · Gemini)가 **직렬 라운드**로 토크쇼식 핑퐁을 주고받고, 사용자는 진행 중에 의견을 끼워넣을 수 있는 웹 도구입니다.
 
-차별화 한 줄: **단순 다중 호출이 아니라 사용자가 토론에 끼어들 수 있는 도구**.
+> **차별화 한 줄** — 단순 다중 호출이 아니라 **사용자가 토론에 함께 참여**합니다.
+> 시연 5단계에서 사용자가 "타겟 유저는 라이트 게이머다"를 추가하면 진행 중 발언이 즉시 끊기고 다음 라운드가 그 의견을 받아 재정렬됩니다.
 
----
-
-## 1. 개요
-
-- 프론트엔드: Next.js 16 + TypeScript + Tailwind 4 (다크 default), Pretendard / Noto Sans KR / JetBrains Mono
-- 백엔드: Next.js Node.js runtime API routes (11개) + SSE 스트리밍 + JSONL append-only 로거
-- 어댑터: Claude API/CLI · Codex(OpenAI) API/CLI · Gemini API/CLI — **6종 모두 1차 제출 포함**
-- 차별화 코드:
-  - 직렬 라운드 오케스트레이터 + 4종 사용자 개입(interrupt/queue/pause·resume/stop) + 30턴·50k토큰·5분 시간 캡 + 시스템 프롬프트 핫스왑
-  - **결과 정리 담당(summarizer)** — 사용자가 지정한 1명이 종료 시 `결론/핵심논점/사용자개입반영/미해결/액션아이템` 5섹션 산출물 생성 (API + CLI 모드 모두 지원, ADR §A9)
-
-스크린샷 / 시연 녹화: M8 단계에서 첨부.
+|             |                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------- |
+| 스택        | Next.js 16 · TypeScript strict · Tailwind v4 · SSE · JSONL                              |
+| 어댑터      | Claude / OpenAI(Codex) / Gemini × API · CLI = **6종**                                   |
+| 사용자 개입 | ⚡ 즉시 인터럽트 · ↳ 큐 · ‖ Pause/Resume · ■ Stop = **4종**                             |
+| 결과물      | 종료 시 `결론 / 핵심 논점 / 사용자 개입 반영 / 미해결 / 액션 아이템` **5섹션 markdown** |
+| 종료 사유   | `user_stop` · `max_turns` · `budget_exceeded` · `time_exceeded`                         |
+| 검증        | typecheck 0 · 9 시나리오 회귀 · scrub-check 0 시크릿                                    |
 
 ---
 
-## 2. 사전 요구사항
-
-- Node.js 20 이상 (개발: v25 검증)
-- npm 11 이상
-- (선택) `claude` CLI 설치·인증 — Claude CLI 모드 사용 시 필요. 설치 가이드: https://docs.anthropic.com/claude/docs/claude-cli
-- 1개 이상의 API 키 또는 인증된 Claude CLI — 활성 에이전트 2개 이상이 모이면 협업 시작 가능
-
-API 키는 다음 중에서 사용자가 UI에 직접 입력 (서버 디스크 미저장):
-
-- Anthropic API key (https://console.anthropic.com)
-- OpenAI API key (https://platform.openai.com/api-keys)
-- Google Gemini API key (https://ai.google.dev/)
-
----
-
-## 3. 설치·실행
+## 빠른 시작
 
 ```bash
-git clone <REPO_URL> agora
-cd agora
+git clone https://github.com/doublesilver/agora && cd agora
 npm install
-npm run dev
+npm run dev   # → http://localhost:3000
 ```
 
-http://localhost:3000 접속 후:
+| 1단계                                             | 2단계            | 3단계           |
+| ------------------------------------------------- | ---------------- | --------------- |
+| ⚙ → AI 에이전트 → **2개 이상 활성** + API 키 입력 | 좌패널 주제 입력 | ▶ START SESSION |
 
-1. 좌측 패널 → "AI 에이전트 설정" 모달 → 사용할 AI **2개 이상 활성화**
-2. 모드 선택 (API: 키 입력 / CLI: 머신에 설치된 CLI 사용)
-3. (선택) "📝 결과 정리 담당" 칩에서 1명 지정 — 종료 시 결론·핵심논점·사용자개입반영·미해결·액션아이템 5섹션 산출물 생성 (API+CLI 모두 가능)
-4. 토론 주제 입력 → "세션 시작"
-
-본편 reproduce에 필요한 인증 (활성화한 어댑터만 해당):
-
-| 에이전트                | 모드 | 사전조건                                                                                        |
-| ----------------------- | ---- | ----------------------------------------------------------------------------------------------- |
-| Claude                  | API  | https://console.anthropic.com 에서 API 키 1개                                                   |
-| Codex (OpenAI)          | API  | https://platform.openai.com/api-keys 에서 API 키 1개                                            |
-| Gemini                  | API  | https://ai.google.dev/ 에서 API 키 1개                                                          |
-| Claude / Codex / Gemini | CLI  | 머신에 `claude` / `codex` / `gemini` 가 설치·인증돼 있어야 (`which {cmd}` + `--version`로 확인) |
-
-Enter로 전송 (Shift+Enter 줄바꿈). "지금 보내기"는 진행 중 발언을 즉시 끊고 의견을 추가, "큐에 추가"는 다음 라운드에 반영. 일시정지·재개·종료는 좌측 패널 컨트롤.
-
-### 권장 시연 시나리오 — 차별화 포인트를 3분 안에 보여주기
-
-채용 평가자/면접관 대상 시연 흐름. 이 순서대로 가면 Agora의 핵심 가치(사용자가 토론에 함께 참여)가 자연스럽게 드러난다.
-
-1. **세팅** (10초): 좌패널 ⚙ → AI 에이전트 → Claude·Codex 활성 + API 키 입력 (5분 캡 안에서 라운드 회전이 빠르게 보이도록 API 모드 권장 — §7 참조)
-2. **결과 정리 담당 지정** (5초): ⚙ → 결과 정리 담당 → Claude 선택 (종료 후 5섹션 호외가 뜸)
-3. **주제 입력** (10초): "서바이벌 게임의 에너지 시스템을 설계해줘" 같은 게임 도메인 프롬프트 → ▶ START SESSION
-4. **2~3 라운드 관망** (60초): Claude·Codex가 토크쇼식 핑퐁 — 우측 활동 로그에서 라운드 진행 실시간 추적
-5. **사용자 의견 추가** (15초): 입력창 모드를 "⚡ 즉시"로 두고 "타겟 유저는 라이트 게이머다" 같은 제약 추가 → "지금 보내기" → 진행 중 발언이 즉시 끊기고 새 라운드가 사용자 의견을 받아 재정렬되는 모습 시연
-6. **종료** (5초): "■ STOP SESSION" 또는 5분 시간 캡 도달 → 채팅 하단 **결론 호외 카드**가 등장: 결론 / 핵심 논점(발언자 attribution 포함) / **사용자 개입 반영** / 미해결 / 액션 아이템 5섹션 markdown
-7. **(선택) Export**: 호외 카드의 "↓ MARKDOWN" 버튼 → transcript + 호외가 합쳐진 단일 markdown 파일
-
-**왜 이 시나리오인가.** Bagelcode 신작팀이 보고 싶어할 게임 기획 도메인 + 사용자 개입이 토론을 흔드는 모습 + 결과물이 그 흔들림을 직접 증명(`사용자 개입 반영` 섹션)하는 흐름.
+5초 안에 첫 토큰이 흐르면 OK. 자세한 평가자용 진입은 [HANDOFF.md](./HANDOFF.md).
 
 ---
 
-## 4. 환경변수
+## 시스템 아키텍처
 
-UI에서 키를 입력하면 환경변수는 불필요하다. dev 편의용으로만 `.env.example` 참조:
+```mermaid
+flowchart LR
+    User([사용자])
+    UI[Next.js UI<br/>HeaderBar · ChatView · LeftPanel<br/>InterventionInput · ActivityLog · SettingsModal]
+    API{Next.js<br/>API Routes<br/>11개}
+    Orch[Orchestrator<br/>직렬 라운드<br/>roundAbort · sessionAbort]
+    Sum[Summarizer<br/>5섹션 markdown]
+    Log[(JSONL<br/>append-only)]
 
+    Claude[Claude SDK]
+    GPT[OpenAI SDK]
+    Gemini[Gemini SDK]
+    CLI[1st-party CLI<br/>spawn]
+
+    User <--> UI
+    UI -- POST --> API
+    API -- SSE --> UI
+    API <--> Orch
+    Orch --> Sum
+    Orch -- emitEvent --> Log
+    Sum --> Claude & GPT & Gemini & CLI
+    Orch --> Claude & GPT & Gemini & CLI
 ```
+
+---
+
+## 직렬 라운드 + 사용자 개입
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant O as Orchestrator
+    participant C as Claude
+    participant X as Codex
+    participant G as Gemini
+
+    U->>O: ▶ START "주제..."
+    Note over O: Round 1 (turn=0)
+    O->>C: speak(transcript)
+    C-->>O: 토큰 스트림 + transcript.push
+    O->>X: speak(transcript with C)
+    X-->>O: 토큰 스트림 + transcript.push
+    O->>G: speak(transcript with C, X)
+    G-->>O: 토큰 스트림 + transcript.push
+
+    Note over O: Round 2 (turn=1, rotate)
+    O->>X: speak(...)
+    U->>O: ⚡ 즉시 "타겟 유저는 라이트 게이머"
+    Note over O: roundAbort.abort()<br/>현 발언자 stream 중단
+    O->>U: agent_end(interrupted=true)
+    Note over O: drainUserQueue → transcript.push
+
+    Note over O: Round 3 (새 라운드, 사용자 메시지 받음)
+    O->>G: speak(transcript + user)
+    G-->>O: 사용자 의견 반영한 발화
+```
+
+핵심: 인터럽트는 **`roundAbort`만 fire**해서 라운드만 끊고 세션은 살립니다. 사용자 메시지가 transcript에 push된 뒤 새 라운드가 자동 시작됩니다.
+
+---
+
+## 세션 라이프사이클
+
+```mermaid
+stateDiagram-v2
+    [*] --> setup
+    setup --> running: ▶ START SESSION
+    running --> paused: ‖ PAUSE
+    paused --> running: ▶ RESUME
+    running --> idle: 2라운드 연속 모두 PASS
+    idle --> running: 사용자 발화
+    running --> stopped: ■ STOP / 종료 사유 도달
+    paused --> stopped: ■ STOP
+    idle --> stopped: ■ STOP
+    stopped --> [*]: 5섹션 호외 emit
+```
+
+종료 사유 4종 (`session_end.reason`):
+
+- **user_stop** — STOP 버튼 또는 모든 어댑터 3회 연속 실패
+- **max_turns** — 30턴 도달 (사용자 1~200 변경 가능)
+- **budget_exceeded** — 100k 토큰 도달 (사용자 1k~1M 변경 가능)
+- **time_exceeded** — 5분 도달 (사용자 30s~60분 변경 가능)
+
+---
+
+## 결과물 — 5섹션 markdown
+
+세션 종료 시 사용자가 지정한 결과 정리 담당이 transcript를 받아 단발 호출로 생성:
+
+```markdown
+## 결론
+
+2~4문장 핵심 결론 + 가장 강한 근거.
+
+## 핵심 논점
+
+- [Claude] 시간 기반 회복은 라이트 게이머 친화적이지만 코어 유저 이탈 위험
+- [Codex] 보석 보충 비율은 1:5로 시작 권장
+- [Gemini] 반례 — 비율보다 daily cap이 더 효과적
+
+## 사용자 개입 반영
+
+사용자가 "타겟 유저는 라이트 게이머"를 끼워넣자
+토론이 회복 속도·UI 명도 강조 방향으로 재조정됨.
+
+## 미해결
+
+- 길드 협동 시 에너지 공유 메커니즘
+
+## 액션 아이템
+
+- 회복 60분 → 45분 A/B 테스트 설계
+```
+
+`핵심 논점`의 발언자 attribution이 AI들이 진짜 다른 목소리 냈는지 한눈에 보여주고, `사용자 개입 반영` 섹션이 차별화 포인트를 결과물에서 직접 증명합니다.
+
+---
+
+## 6 어댑터
+
+| 에이전트           | API 모드                                                         | CLI 모드                                |
+| ------------------ | ---------------------------------------------------------------- | --------------------------------------- |
+| **Claude**         | `@anthropic-ai/sdk` · default `claude-opus-4-7` (prompt caching) | `claude -p --output-format stream-json` |
+| **Codex** (OpenAI) | `openai` · default `gpt-5`                                       | `codex exec --json --sandbox read-only` |
+| **Gemini**         | `@google/genai` · default `gemini-2.5-pro`                       | `gemini -p -y -o stream-json`           |
+
+API 모드는 ⚙ → AI 에이전트에서 모델 직접 선택 (datalist 자동완성). CLI 모드는 `~/.claude/settings.json` · `~/.gemini/GEMINI.md` 등 사용자 머신 설정을 그대로 따릅니다.
+
+> 💡 **시연은 API 모드 권장** — CLI는 매 라운드 cold start ~25s + 인증 핸드셰이크. 5분 박스에선 라운드 회전이 3~5회로 제한. API는 첫 토큰 1~3s라 같은 시간에 라운드 10회+ 가능.
+
+---
+
+## 환경변수
+
+UI에서 키를 입력하면 환경변수는 불필요합니다. dev 편의용으로만 `.env.example` 참조:
+
+```ini
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 GEMINI_API_KEY=
 ```
 
-> ⚠️ `.env.local`은 절대 커밋하지 않는다. `.gitignore`에 박제됨.
-
----
-
-## 5. CLI 모드 사용법 + 트러블슈팅
-
-CLI 모드는 사용자 머신에 이미 OAuth/구독으로 인증된 1st-party CLI를 spawn해서 활용한다 (운영 통찰 §7 참조). 3종 모두 지원.
+CLI 모드에서 PATH 누락 시 절대경로 override:
 
 ```bash
-# 사전 확인 — 같은 터미널에서 dev 서버를 띄울 PATH가 잡혀 있는지
-which claude codex gemini   # 3개 모두 출력되면 OK
-claude --version
-codex --version
-gemini --version
-```
-
-> ⚠️ **반드시 터미널에서 직접 `npm run dev`** 하세요. VSCode/Cursor의 GUI "Run" 버튼이나 Finder에서 띄우면 IDE의 PATH(보통 `~/.npm-global/bin`, `/opt/homebrew/bin` 누락)만 spawn에 상속돼 `claude`/`codex`/`gemini`가 안 잡힙니다. Node `child_process`는 셸이 아니라 `~/.zshrc`도 안 읽습니다.
-
-### CLI 자동감지 실패 시 — 환경변수로 절대경로 override
-
-PATH가 안 잡히면 좌패널 CLI 카드의 미설치 안내 문구를 따라 환경변수에 절대경로를 박고 dev 서버를 다시 띄웁니다 (3개 중 안 잡힌 것만 박으면 됩니다):
-
-```bash
-# 절대경로 확인
-which claude   # 예: /Users/X/.npm-global/bin/claude
-which codex    # 예: /opt/homebrew/bin/codex
-which gemini   # 예: /usr/local/bin/gemini
-
-# override 적용
-AGORA_CLAUDE_BIN=/Users/X/.npm-global/bin/claude \
-AGORA_CODEX_BIN=/opt/homebrew/bin/codex \
-AGORA_GEMINI_BIN=/usr/local/bin/gemini \
+AGORA_CLAUDE_BIN=/path/to/claude \
+AGORA_CODEX_BIN=/path/to/codex \
+AGORA_GEMINI_BIN=/path/to/gemini \
 npm run dev
 ```
 
-좌패널 CLI 카드에 경로가 표시되며 `🟢 사용 가능`으로 바뀝니다. 환경변수 미설정 시 default `claude`/`codex`/`gemini` 명령을 PATH에서 찾습니다.
-
-각 CLI 호출 시그니처 (어댑터 내부에서 자동):
-
-- Claude: `claude -p "<prompt>" --output-format stream-json --verbose`
-- Codex: `codex exec --json --ephemeral --skip-git-repo-check --sandbox read-only "<prompt>"`
-- Gemini: `gemini -p "<prompt>" -y -o json -m gemini-2.5-pro`
-
-CLI 미설치/미인증·구독 한도 초과 시 라운드에서 `agent_error` 발생 후 PASS로 폴백 → 다음 라운드는 정상 시도.
-
-> 💡 **MCP 도구 자동 활용**: CLI 모드는 사용자 머신의 1st-party CLI를 그대로 spawn하기 때문에 `~/.claude/mcp.json` 등 사용자가 등록한 MCP 서버가 토론 중 그대로 활용된다. 별도 통합 작업 없이 도메인 도구·로컬 파일·외부 API 모두 토론에 끌어들일 수 있음.
-
-> 💡 **결과 정리 담당은 CLI도 지원**: 토론 종료 시 1회 호출이라 CLI cold-start(25~40s)를 흡수할 여유가 있어, 좌패널 "📝 결과 정리 담당" 칩은 API+키 후보 + CLI 인증된 후보를 모두 노출한다. CLI 모드는 `claude -p` / `codex exec --skip-git-repo-check --sandbox read-only` / `gemini -p -y -m gemini-2.5-flash`로 단발 spawn해 stdout을 받는다. 호출 실패 시 `summary_error` 한 번 emit되고 transcript·Export는 그대로 유지. 실시간 요약(rolling)은 호출 비용·UX 노이즈 균형이 안 맞아 1차 제출에서 제외. 자세한 ADR은 `AGENTS.md` §A9 참조.
-
-| 증상                                      | 원인                                    | 해결                         |
-| ----------------------------------------- | --------------------------------------- | ---------------------------- |
-| `agent_error: claude CLI exited code=...` | 인증 만료                               | `claude` 한 번 실행해 재인증 |
-| `agent_timeout (60s)`                     | 첫 토큰 지연 (네트워크/모델 부팅)       | 다음 라운드 자동 재시도      |
-| 라운드 무한 PASS                          | API 키 잘못 (인증 실패가 PASS로 가려짐) | 좌패널에서 키 확인 후 재시작 |
+> ⚠️ **터미널에서 직접 `npm run dev`** 하세요. VSCode/Cursor GUI나 Finder에서 띄우면 IDE의 PATH만 spawn에 상속돼 CLI를 못 잡을 수 있습니다.
 
 ---
 
-## 6. JSONL 세션 로그
+## JSONL 세션 로그
 
-세션마다 `./logs/{sessionId}.jsonl`에 한 줄 = 한 이벤트로 append.
+세션마다 `./logs/{sessionId}.jsonl`에 한 줄 = 한 이벤트로 append. 13종 이벤트 (스키마 단일 출처: `AGENTS.md` JSONL 섹션):
 
-이벤트 종류 (스키마 단일 출처: `AGENTS.md` JSONL 섹션):
+```mermaid
+flowchart LR
+    Start[session_start] --> Status[status: running]
+    Status --> Round{Round loop}
+    Round -- 발화 --> AS[agent_start]
+    AS --> Tok[token...] --> AE[agent_end]
+    Round -- PASS --> AP[agent_pass]
+    Round -- 60s timeout --> AT[agent_timeout]
+    Round -- SDK error --> AErr[agent_error]
+    AE --> Use[usage]
+    Round -- 사용자 개입 --> UM[user_message]
+    Round -- 핫스왑 --> SP[system_prompt_change]
+    Round -- 종료 사유 --> Final[final_artifact]
+    Final --> End[session_end]
+```
 
-- `session_start` / `session_end` (reason: user_stop / max_turns / budget_exceeded / time_exceeded)
-- `agent_start` / `token` / `agent_end(interrupted)` / `agent_pass`
-- `agent_timeout` / `agent_error`
-- `user_message(mode: interrupt|queue)`
-- `system_prompt_change`
-- `status` (running|idle|paused|stopped)
-- `usage` (input/output 토큰 + sessionTotal)
-- `final_artifact` / `summary_error` (결과 정리 담당 지정 시 종료 직전 1회, API+CLI 모드 모두)
+API 키 / OAuth 토큰 / CLI 인자는 절대 기록되지 않습니다. 자동 검증:
 
-API 키 / OAuth 토큰은 절대 기록되지 않는다. 자동 검증: `bash scripts/scrub-check.sh logs/<id>.jsonl`.
-
----
-
-## 7. 운영 통찰 — 왜 이렇게 만들었는가
-
-**왜 표준 OAuth를 구현하지 않았는가.** Anthropic·OpenAI는 외부 앱용 OAuth provider를 일반 개발자에게 공개하지 않는다 ([Anthropic API Auth](https://docs.anthropic.com/claude/reference/getting-started-with-the-api), OpenAI는 API 키 전용). 진짜 OAuth가 가능한 건 Google뿐. 그래서 Claude·OpenAI는 "1st-party CLI를 spawn해 자기 토큰으로 호출"하는 방식이 사실상의 OAuth 대체다. UI에 가짜 OAuth 버튼을 두는 것보다 정직하다.
-
-**왜 자유 메시지를 직렬 라운드로 만들었는가.** 병렬 라운드(`Promise.all`)는 두 AI가 서로의 발언을 못 듣고 동시 발화해 "엇갈린 독백"이 된다. 직렬로 바꾸자 토크쇼식 핑퐁이 살아났다. SSE 토큰 스트리밍이 체감 속도를 보전한다.
-
-**왜 인터럽트는 라운드만 끊고 세션은 안 끊는가.** "사용자 의견 반영 후 다시 시작"이 STOP보다 자연스럽다. `roundAbort`와 `sessionAbort`를 분리해 인터럽트는 현재 발언자 스트림만 abort하고 사용자 메시지를 transcript에 push한 뒤 새 라운드를 띄운다. STOP은 별개 버튼으로 사고를 막는다.
-
-**왜 시연은 API 모드를 권장하는가.** CLI 모드는 매 라운드 새 프로세스를 spawn하므로 cold-start(~25~40s) + 1st-party CLI 인증 핸드셰이크가 매번 누적된다. 5분 시연 캡 안에서 라운드 회전이 3~5회로 제한된다. API 모드는 첫 토큰 1~3s라 같은 시간에 라운드 10회+를 보여줄 수 있다. CLI 모드는 "구독 OAuth를 우리 앱이 간접 활용"하는 사실상의 OAuth 대체임을 증명하는 용도로 1개만 켜고, 나머지는 API로 가는 게 시연 평가에 유리하다.
-
-**보안 가정.** 단일 사용자 로컬 데모 환경 가정. sessionId는 UUIDv4(122-bit 엔트로피)라 추측 불가하지만 외부 노출 시 동일 세션의 stop/intervene/system-prompt 호출이 가능 — 다중 사용자 배포는 별도 세션 인증 토큰 + CORS 강화 필요. API 키는 클라 sessionStorage만 저장, 서버는 메모리 통과만(JSONL·콘솔·SSE 어디에도 echo 없음, `scrub-check.sh` 자동 검증).
+```bash
+bash scripts/scrub-check.sh logs/<id>.jsonl
+```
 
 ---
 
-## 8. 제출물 안내
+## 운영 통찰 — 왜 이렇게 만들었는가
 
-- `AGENTS.md` — 명세 단일 출처 (포지셔닝·ADR·아키텍처·검증 체크리스트)
-- `PLAN.md` — 마일스톤 M0~M8 작업 계획
-- `.omc/prd.json` — 스토리·인수기준 PRD (ralplan APPROVE 결과)
-- `.omc/progress.txt` — 진행 로그·발견사항
-- `.omc/notes/m0-recon.md` — SDK/CLI 사전 정찰 결과 (M0 산출물)
-- `scripts/recon/*.ts` — SDK/CLI 호출 검증 미니 스크립트 4개
-- `scripts/verify-*.ts` — fake 어댑터·오케스트레이터 6 시나리오·Claude CLI 어댑터 검증
-- `scripts/verify-api.sh` — 8 API 라우트 + JSONL 통합 검증 7 케이스
-- `scripts/scrub-check.sh` — JSONL 시크릿 grep 자동 검증
-- `logs/sample-session.jsonl` — 샘플 JSONL 1건
-- 화면 녹화: M8에서 본편(실어댑터) + 백업본(fake) 2개
+### 1. 표준 OAuth 미구현 → CLI spawn으로 대체
+
+Anthropic·OpenAI는 외부 앱용 OAuth provider를 일반 개발자에게 공개하지 않습니다. 진짜 OAuth가 가능한 건 Google뿐. 그래서 Claude·OpenAI는 **사용자 머신의 1st-party CLI를 `child_process.spawn`해 자기 토큰으로 호출**하는 방식이 사실상의 OAuth 대체입니다. UI에 가짜 OAuth 버튼을 두는 것보다 정직합니다.
+([Anthropic API Auth 문서](https://docs.anthropic.com/claude/reference/getting-started-with-the-api))
+
+### 2. 자유 메시지를 직렬 라운드로
+
+병렬(`Promise.all`)은 두 AI가 서로의 발언을 못 듣고 동시 발화 → "엇갈린 독백". 직렬로 바꾸자 토크쇼식 핑퐁이 살아났습니다. SSE 토큰 스트리밍이 체감 속도를 보전합니다.
+
+### 3. 인터럽트는 라운드만 끊고 세션은 살림
+
+`roundAbort` (라운드 단위 새로 생성) vs `sessionAbort` (세션 단위 1개)를 분리. 인터럽트 → 현 발언자 스트림 abort → 사용자 메시지 transcript push → 새 라운드 자동 시작. STOP은 별개 버튼으로 사고 방지.
+
+### 4. 시연은 API 모드 권장
+
+CLI는 매 라운드 새 spawn cold start. API는 첫 토큰 1~3s. 5분 시연 박스에서 라운드 회전 차이가 3배 이상.
+
+### 5. 보안 가정
+
+단일 사용자 로컬 데모 환경 가정. 다중 사용자 배포는 별도 세션 인증 토큰 + CORS 강화 필요. API 키는 클라 sessionStorage만 통과, 서버는 메모리 통과만 (JSONL·콘솔·SSE 어디에도 echo 없음, `scrub-check.sh` 자동 검증).
+
+---
+
+## 제출물 / 디렉토리
+
+```
+agora/
+├── HANDOFF.md            ← 평가자 1페이지 진입 가이드
+├── README.md             ← 이 파일
+├── AGENTS.md             ← 명세 단일 출처 (ADR + JSONL 스키마)
+├── PLAN.md               ← M0~M8 마일스톤
+├── CLAUDE.md             ← Claude Code 진입 (@AGENTS.md)
+│
+├── src/
+│   ├── app/              ← Next.js 16 App Router (페이지 + 11 API routes)
+│   ├── components/       ← UI (HeaderBar · ChatView · ... 7개)
+│   └── lib/
+│       ├── agents/       ← 6 어댑터 + 헬퍼
+│       ├── orchestrator*.ts  ← 직렬 라운드 알고리즘 (entry/round/stream)
+│       ├── summarizer.ts ← 5섹션 final artifact
+│       ├── session-store.ts  ← in-memory 세션 + 이벤트 단일 출처
+│       └── client/       ← use-session SSE reducer + 타입
+│
+├── scripts/
+│   ├── verify-orchestrator.ts  ← 9 시나리오 회귀
+│   ├── scrub-check.sh           ← JSONL 시크릿 grep
+│   ├── verify-api.sh            ← API 라우트 통합
+│   └── recon/                   ← M0 SDK/CLI 정찰 4종
+│
+├── logs/
+│   └── sample-session.jsonl     ← 50 events 샘플
+│
+└── .omc/
+    ├── notes/m0-recon.md        ← SDK/CLI 사전 정찰
+    ├── prd.json                 ← 인수기준 PRD
+    └── progress.txt             ← 진행 로그
+```
+
+---
+
+## 검증 명령
+
+```bash
+npm run typecheck                       # TypeScript strict 0 에러
+npx tsx scripts/verify-orchestrator.ts  # 9 시나리오 회귀 (인터럽트·timeout·budget·time 등)
+bash scripts/scrub-check.sh logs/sample-session.jsonl  # 시크릿 0건
+npm run build                           # production 컴파일 (11 routes)
+```
 
 ---
 
 ## 라이선스 / 작성자
 
-본 저장소는 채용 과제 제출용 단일 작가 작품이다. 외부 코드 기여는 받지 않는다.
+본 저장소는 채용 과제 제출용 단일 작가 작품. 외부 코드 기여는 받지 않습니다.
+
+— 이은석 · team.dev@ingstory.kr
