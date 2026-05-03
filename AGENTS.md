@@ -192,7 +192,7 @@ npm run dev
 
 ## 스택
 
-- Next.js 15 (App Router) + TypeScript (strict) + Tailwind
+- Next.js 16 (App Router) + TypeScript (strict) + Tailwind v4
 - Node.js runtime API routes (edge 아님 — `child_process` 필요)
 - SDK: `@anthropic-ai/sdk`, `openai`, `@google/genai`
 - 로깅: 자체 JSONL writer (외부 의존성 없음)
