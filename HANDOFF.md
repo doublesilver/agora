@@ -61,7 +61,7 @@ http://localhost:3000 접속 후:
 
 ### 디스크에서
 
-- `./logs/{sessionId}.jsonl` — 모든 이벤트 append-only (token/agent_start/agent_end/user_message/usage/session_end/final_artifact 등 13종, AGENTS.md JSONL 섹션 참조)
+- `./logs/{sessionId}.jsonl` — 모든 이벤트 append-only (token/agent_start/agent_end/user_message/usage/session_end/final_artifact 등 14종, AGENTS.md JSONL 섹션 참조)
 - `./logs/sample-session.jsonl` — 미리 커밋된 50 event 샘플
 - `↓ MARKDOWN` 다운로드 — transcript + 호외 합쳐진 단일 markdown
 

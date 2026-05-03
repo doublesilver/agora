@@ -194,7 +194,7 @@ npm run dev
 
 ## JSONL 세션 로그
 
-세션마다 `./logs/{sessionId}.jsonl`에 한 줄 = 한 이벤트로 append. 13종 이벤트 (스키마 단일 출처: `AGENTS.md` JSONL 섹션):
+세션마다 `./logs/{sessionId}.jsonl`에 한 줄 = 한 이벤트로 append. 14종 이벤트 (스키마 단일 출처: `AGENTS.md` JSONL 섹션):
 
 ```mermaid
 flowchart LR
