@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentConfig, SessionView } from "@/lib/client/types";
 import { ROLE_SEEDS } from "@/lib/agents/role-seeds";
 import type { AgentId } from "@/lib/agents/types";
+import { DEFAULT_API_MODELS, MODEL_CANDIDATES } from "@/lib/models";
 import { friendlyError } from "@/lib/client/friendly-error";
 import { exportConfig, importConfig } from "@/lib/client/config-io";
 import {
@@ -632,28 +633,9 @@ function AgentsPane({
   );
 }
 
-/** API 모드 모델 선택 — 어댑터별 프리셋 datalist 제안 + 자유 입력.
- * 빈 값은 어댑터의 default 모델 사용 (claude-opus-4-7 / gpt-5 / gemini-2.5-pro).
- * 면접관/사용자가 quota·속도·가격 trade-off에 따라 직접 모델 선택 가능. */
-const MODEL_PRESETS: Record<AgentId, { label: string; models: string[] }> = {
-  claude: {
-    label: "claude-opus-4-7",
-    models: [
-      "claude-opus-4-7",
-      "claude-sonnet-4-6",
-      "claude-haiku-4-5-20251001",
-    ],
-  },
-  codex: {
-    label: "gpt-5",
-    models: ["gpt-5", "gpt-5-mini", "gpt-4.1", "gpt-4.1-mini"],
-  },
-  gemini: {
-    label: "gemini-2.5-pro",
-    models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
-  },
-};
-
+/** API 모드 모델 선택 — 어댑터별 카탈로그 datalist 제안 + 자유 입력.
+ * 빈 값은 어댑터의 default 모델 사용 (`src/lib/models.ts` 단일 출처).
+ * 사용자가 quota·속도·가격 trade-off에 따라 직접 모델 선택 가능. */
 function ModelSelect({
   agentId,
   value,
@@ -665,12 +647,13 @@ function ModelSelect({
   disabled: boolean;
   onChange: (next: string | undefined) => void;
 }) {
-  const preset = MODEL_PRESETS[agentId];
+  const candidates = MODEL_CANDIDATES[agentId];
+  const defaultModel = DEFAULT_API_MODELS[agentId];
   const listId = `model-presets-${agentId}`;
-  // 자유 입력 가능하지만 프리셋 외 값은 SDK가 model_not_found로 토해야 비로소
+  // 자유 입력 가능하지만 카탈로그 외 값은 SDK가 model_not_found로 토해야 비로소
   // 발각된다 — 첫 라운드 PASS로 잘리는 회피 가능 사용자 실수. 외부값 즉시 hint.
   const isPreset =
-    !value || value.trim().length === 0 || preset.models.includes(value);
+    !value || value.trim().length === 0 || candidates.includes(value);
   return (
     <label className="flex items-center gap-2 text-[11px] text-ink2">
       <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-ink3">
@@ -680,7 +663,7 @@ function ModelSelect({
         list={listId}
         value={value ?? ""}
         disabled={disabled}
-        placeholder={`기본: ${preset.label}`}
+        placeholder={`기본: ${defaultModel}`}
         onChange={(e) => {
           const v = e.target.value.trim();
           onChange(v.length > 0 ? v : undefined);
@@ -689,16 +672,16 @@ function ModelSelect({
         aria-label={`${AGENT_LABELS[agentId]} 모델`}
       />
       <datalist id={listId}>
-        {preset.models.map((m) => (
+        {candidates.map((m) => (
           <option key={m} value={m} />
         ))}
       </datalist>
       {!isPreset && (
         <span
           className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-ink"
-          title="프리셋 외 모델 — SDK 호출이 실패하면 첫 라운드가 PASS로 잘립니다"
+          title="카탈로그 외 모델 — SDK 호출이 실패하면 첫 라운드가 PASS로 잘립니다"
         >
-          ⚠ 비프리셋
+          ⚠ 비카탈로그
         </span>
       )}
     </label>

@@ -7,8 +7,9 @@ import type {
   SpeakResult,
 } from "./types";
 import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
+import { DEFAULT_API_MODELS } from "../models";
 
-const DEFAULT_MODEL = "gemini-2.5-pro";
+const DEFAULT_MODEL = DEFAULT_API_MODELS.gemini;
 
 interface GeminiApiOptions {
   apiKey: string;

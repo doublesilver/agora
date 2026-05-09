@@ -7,8 +7,9 @@ import type {
   SpeakResult,
 } from "./types";
 import { buildSystemPrompt, serializeTranscript } from "./adapter-helpers";
+import { DEFAULT_API_MODELS } from "../models";
 
-const DEFAULT_MODEL = "gpt-5";
+const DEFAULT_MODEL = DEFAULT_API_MODELS.codex;
 
 interface GptApiOptions {
   apiKey: string;

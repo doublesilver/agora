@@ -20,6 +20,7 @@ import {
   stripGeminiBanner,
 } from "./agents/cli-stream";
 import { emitEvent, type SessionState } from "./session-store";
+import { DEFAULT_API_MODELS } from "./models";
 
 const now = (): number => Date.now();
 
@@ -203,13 +204,8 @@ async function callSummarizer(
       if (!spec.apiKey) {
         throw new Error("summarizer: apiKey 누락 — 요약 담당 키 확인.");
       }
-      // 사용자 ⚙ 설정 모델 우선, 없으면 어댑터 default와 동일한 fallback.
-      const apiDefault: Record<AgentId, string> = {
-        claude: "claude-opus-4-7",
-        codex: "gpt-5",
-        gemini: "gemini-2.5-pro",
-      };
-      const model = spec.model ?? apiDefault[spec.summarizerId];
+      // 사용자 ⚙ 설정 모델 우선, 없으면 어댑터 default(src/lib/models.ts)와 동일.
+      const model = spec.model ?? DEFAULT_API_MODELS[spec.summarizerId];
       switch (spec.summarizerId) {
         case "claude":
           return await callClaudeApi(
