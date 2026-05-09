@@ -950,7 +950,7 @@ function ReferencePane({
         onChange={(e) => setReferenceDoc(e.target.value)}
         disabled={!isSetup}
         placeholder={
-          "토론 시작 전 모든 AI에게 함께 보여줄 문서. 직접 타이핑·붙여넣기 가능.\n\n예: 게임 기획서·요구사항·기존 시스템 설명 등."
+          "토론 시작 전 모든 AI에게 함께 보여줄 문서. 직접 타이핑·붙여넣기 가능.\n\n예: 요구사항 문서·기존 시스템 설명·배경 자료 등."
         }
         className="h-48 resize-y rounded border border-ink bg-paper2 p-2 text-xs leading-snug disabled:cursor-not-allowed disabled:opacity-60"
       />
@@ -1445,10 +1445,10 @@ function AboutPane() {
         Agora · 사용자가 함께 참여하는 멀티 AI 토론 도구
       </h3>
       <p>
-        베이글코드 신작팀 AI 개발자 채용 과제 제출물. 여러 AI 에이전트(Claude
-        ·GPT·Gemini)가 직렬 라운드로 자유 메시지를 주고받으며 사용자의
-        프롬프트를 협업 처리하고, 사용자는 토론에 즉시 의견을 추가하거나 다음
-        라운드에 반영하거나 일시정지·재개·종료할 수 있다.
+        여러 AI 에이전트(Claude·GPT·Gemini)가 직렬 라운드로 자유 메시지를
+        주고받으며 사용자의 프롬프트를 협업 처리한다. 사용자는 토론에 즉시
+        의견을 추가하거나 다음 라운드에 반영하거나 일시정지·재개·종료할 수
+        있다. 도메인 무관 — 어떤 주제든 OK.
       </p>
       <p>
         차별화 한 줄:{" "}

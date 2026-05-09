@@ -21,16 +21,16 @@ const ACCENT: Record<AgentId, string> = {
 
 const DEMO_PRESETS: { label: string; text: string }[] = [
   {
-    label: "🎮 서바이벌 에너지",
-    text: "서바이벌 게임의 에너지 시스템을 설계해줘. 회복·소모·UI 표현·밸런스 핀에 합의된 1차 안과 근거가 필요해.",
+    label: "📋 요구사항 정리",
+    text: "[프로젝트 이름]의 1차 요구사항 문서를 작성해줘. 핵심 기능·우선순위·수용 기준에 합의된 안과 그 근거가 필요해.",
   },
   {
-    label: "⚔️ MMO 길드전 매칭",
-    text: "MMO 길드전의 매칭·점수·보상 시스템을 설계해줘. 인원 비대칭과 실력 차이를 어떻게 흡수할지 함께 논의해줘.",
+    label: "🧭 의사결정 비교",
+    text: "[A안 vs B안] 두 옵션을 비교 평가해줘. 각각의 트레이드오프·리스크·전제 조건을 함께 정리하고, 1순위 추천과 그 이유를 제시해.",
   },
   {
-    label: "🎲 리듬 게임 채보",
-    text: "리듬 게임의 채보 자동 난이도 조정 시스템을 설계해줘. 곡 분석·플레이어 스킬 추정·실시간 보정 메커니즘.",
+    label: "✍️ 글 다듬기",
+    text: "다음 글의 명확성·구조·톤을 개선해줘. 변경한 부분과 그 이유를 함께 보여줘.\n\n[여기에 글 붙여넣기]",
   },
 ];
 
@@ -59,7 +59,7 @@ interface Props {
 export function LeftPanel(props: Props) {
   const { configs, view } = props;
   const [userPrompt, setUserPrompt] = useState(
-    "서바이벌 게임의 에너지 시스템을 설계해줘.",
+    "토론 주제를 입력하세요. (좌측 프리셋을 클릭하면 예시가 들어옵니다)",
   );
   const [cliStatus, setCliStatus] = useState<CliStatus>(null);
 
