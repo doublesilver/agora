@@ -146,13 +146,19 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setAppearance({ ...appearance, showInput: true })}
-            className="flex shrink-0 items-center justify-center gap-2 border-t-2 border-ink bg-paper py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink2 transition-colors hover:bg-ink hover:text-paper"
+            className="hidden shrink-0 items-center justify-center gap-2 border-t-2 border-ink bg-paper py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink2 transition-colors hover:bg-ink hover:text-paper md:flex"
             title="발화 입력창 다시 활성화"
           >
             <span>⌃</span>
             <span>UNFOLD INPUT</span>
           </button>
         )}
+        <div
+          role="note"
+          className="shrink-0 border-t-2 border-ink bg-paper2 px-3 py-3 text-center font-mono text-[11px] leading-relaxed text-ink2 md:hidden"
+        >
+          📱 데스크탑(≥768px) 전용 인터랙션 — 모바일에서는 토론을 <strong>읽기 전용</strong>으로만 표시합니다.
+        </div>
       </main>
       <ActivityLog view={view} />
       <SettingsModal

@@ -98,7 +98,7 @@ export function InterventionInput({
 
   return (
     <div
-      className={`shrink-0 border-t-2 border-ink bg-paper ${flash ? "animate-flash-amber" : ""}`}
+      className={`hidden shrink-0 border-t-2 border-ink bg-paper md:block ${flash ? "animate-flash-amber" : ""}`}
     >
       {showHelp && <SlashHelpCard onClose={() => setShowHelp(false)} />}
 

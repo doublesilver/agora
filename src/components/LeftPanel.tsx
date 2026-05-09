@@ -79,7 +79,7 @@ export function LeftPanel(props: Props) {
   const canStart = isSetup && enabledCount >= 2 && userPrompt.trim().length > 0;
 
   return (
-    <aside className="flex h-full w-[360px] shrink-0 flex-col border-r-2 border-ink bg-paper font-mono text-[12px] text-ink">
+    <aside className="hidden h-full w-[360px] shrink-0 flex-col border-r-2 border-ink bg-paper font-mono text-[12px] text-ink md:flex">
       {/* Top utility bar */}
       <div className="flex items-center justify-between border-b border-ink px-3 py-1.5 text-[9px] uppercase tracking-[0.18em] text-ink2">
         <span>// SIDEBAR</span>

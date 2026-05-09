@@ -64,7 +64,7 @@ export function ActivityLog({ view }: Props) {
   }
 
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col border-l-2 border-ink bg-paper font-mono text-[11px] text-ink">
+    <aside className="hidden h-full w-[280px] shrink-0 flex-col border-l-2 border-ink bg-paper font-mono text-[11px] text-ink lg:flex">
       <header className="flex items-center justify-between border-b-2 border-ink bg-ink px-3 py-1.5 text-paper">
         <span className="text-[10px] font-bold uppercase tracking-[0.22em]">
           $ ACTIVITY.LOG
