@@ -12,7 +12,9 @@
     "recon:openai": "tsx scripts/recon/openai.ts",
     "recon:gemini": "tsx scripts/recon/gemini.ts",
     "recon:claude-cli": "tsx scripts/recon/claude-cli.ts",
-    "verify:fake": "tsx scripts/verify-fake.ts"
+    "verify:fake": "tsx scripts/verify-fake.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
@@ -31,6 +33,7 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }
