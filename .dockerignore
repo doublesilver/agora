@@ -1,0 +1,48 @@
+# Docker 빌드 컨텍스트에서 제외할 파일 — 이미지 크기와 빌드 속도 최적화.
+
+# 의존성 (Dockerfile에서 npm ci로 새로 설치)
+node_modules
+npm-debug.log*
+
+# 빌드 산출물
+.next
+out
+build
+dist
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# 환경변수 — 절대 이미지에 포함 금지
+.env
+.env.*
+!.env.example
+
+# 로그 (런타임 디렉토리, 컨테이너에서 새로 생성)
+logs/*.jsonl
+!logs/sample-session.jsonl
+
+# 개발 메타
+.git
+.github
+.gitignore
+.dockerignore
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# 문서 (런타임 불필요)
+*.md
+!README.md
+docs/legacy/
+.claude/
+.omc/
+
+# 테스트
+src/lib/__tests__
+**/*.test.ts
+**/*.spec.ts
+
+# Vercel (다른 호스팅, Railway에선 불필요)
+.vercel
