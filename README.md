@@ -28,7 +28,23 @@ npm run dev   # → http://localhost:3000
 | ------------------------------------------------- | ---------------- | --------------- |
 | ⚙ → AI 에이전트 → **2개 이상 활성** + API 키 입력 | 좌패널 주제 입력 | ▶ START SESSION |
 
-5초 안에 첫 토큰이 흐르면 OK. 자세한 평가자용 진입은 [HANDOFF.md](./HANDOFF.md).
+5초 안에 첫 토큰이 흐르면 OK. 영문 README는 [README.en.md](./README.en.md).
+
+---
+
+## 활용 예시 — 어떤 토론에 쓰나
+
+도메인은 본인이 정의합니다. 시스템 프롬프트로 각 AI에 역할을 지정하고, 토론 주제는 좌패널에 자유롭게.
+
+| 직군·상황                    | 활용 예                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| **PM·기획**                  | 1차 요구사항 문서 초안 → 두 AI가 우선순위·수용 기준 토론, 빠진 시나리오 발견    |
+| **전략·아키텍트**            | A안 vs B안 트레이드오프 비교, 사용자가 도중에 새 제약 추가하면 즉시 재정렬       |
+| **콘텐츠·라이팅**            | 글의 명확성·구조·톤 다듬기, 한 AI가 reviewer / 다른 AI가 editor 역할             |
+| **연구·학습**                | 가설 토론 + 반례 제시 + 검증 실험 설계                                          |
+| **개발자 페어 검토**         | 설계 의사결정 토론, "OAuth vs JWT" 같은 트레이드오프를 다각도로                  |
+
+좌패널 프리셋(요구사항 정리 · 의사결정 비교 · 글 다듬기) 3개는 마중물일 뿐 — 본인 도메인을 그대로 입력해도 OK.
 
 ---
 
@@ -243,39 +259,36 @@ CLI는 매 라운드 새 spawn cold start. API는 첫 토큰 1~3s. 5분 시연 �
 
 ---
 
-## 제출물 / 디렉토리
+## 디렉토리 구조
 
 ```
 agora/
-├── HANDOFF.md            ← 평가자 1페이지 진입 가이드
-├── README.md             ← 이 파일
+├── CLAUDE.md             ← 프로젝트 기획문서 (Stage A SoT)
 ├── AGENTS.md             ← 명세 단일 출처 (ADR + JSONL 스키마)
-├── PLAN.md               ← M0~M8 마일스톤
-├── CLAUDE.md             ← Claude Code 진입 (@AGENTS.md)
+├── README.md             ← 한국어 안내
+├── README.en.md          ← English guide
 │
 ├── src/
-│   ├── app/              ← Next.js 16 App Router (페이지 + 11 API routes)
-│   ├── components/       ← UI (HeaderBar · ChatView · ... 7개)
+│   ├── app/              ← Next.js App Router (페이지 + 11 API routes)
+│   ├── components/       ← UI (HeaderBar · ChatView · LeftPanel · …)
 │   └── lib/
 │       ├── agents/       ← 6 어댑터 + 헬퍼
 │       ├── orchestrator*.ts  ← 직렬 라운드 알고리즘 (entry/round/stream)
-│       ├── summarizer.ts ← 5섹션 final artifact
+│       ├── summarizer.ts     ← 5섹션 final artifact
 │       ├── session-store.ts  ← in-memory 세션 + 이벤트 단일 출처
-│       └── client/       ← use-session SSE reducer + 타입
+│       └── client/           ← use-session SSE reducer + 타입
 │
 ├── scripts/
 │   ├── verify-orchestrator.ts  ← 9 시나리오 회귀
 │   ├── scrub-check.sh           ← JSONL 시크릿 grep
-│   ├── verify-api.sh            ← API 라우트 통합
-│   └── recon/                   ← M0 SDK/CLI 정찰 4종
+│   └── verify-api.sh            ← API 라우트 통합
 │
 ├── logs/
 │   └── sample-session.jsonl     ← 50 events 샘플
 │
-└── .omc/
-    ├── notes/m0-recon.md        ← SDK/CLI 사전 정찰
-    ├── prd.json                 ← 인수기준 PRD
-    └── progress.txt             ← 진행 로그
+└── docs/legacy/                 ← v0.1 채용 과제 시점 산출물 보존
+    ├── HANDOFF.md               ← 채용 평가자용 1페이지 가이드
+    └── PLAN.md                  ← v0.1 M0~M8 마일스톤
 ```
 
 ---
