@@ -28,7 +28,7 @@ npm run dev   # → http://localhost:3000
 | ------------------------------------------------- | ---------------- | --------------- |
 | ⚙ → AI 에이전트 → **2개 이상 활성** + API 키 입력 | 좌패널 주제 입력 | ▶ START SESSION |
 
-5초 안에 첫 토큰이 흐르면 OK. 영문 README는 [README.en.md](./README.en.md). 라이브 배포는 [Railway 배포 가이드](./docs/DEPLOY.md).
+5초 안에 첫 토큰이 흐르면 OK. 영문 README는 [README.en.md](./README.en.md), 아키텍처 결정·트레이드오프는 [ARCHITECTURE.md](./ARCHITECTURE.md), 라이브 배포는 [Railway 가이드](./docs/DEPLOY.md).
 
 ---
 

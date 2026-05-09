@@ -98,7 +98,37 @@ flowchart LR
     Orch --> Claude & GPT & Gemini & CLI
 ```
 
-For the full ADRs (A1~A9), JSONL event schema, orchestrator algorithm — see [`AGENTS.md`](./AGENTS.md).
+For the full architecture explanation with trade-offs and pseudocode, see [`ARCHITECTURE.md`](./ARCHITECTURE.md). For canonical Korean ADRs (A1~A9), JSONL event schema, and full orchestrator algorithm, see [`AGENTS.md`](./AGENTS.md).
+
+---
+
+## Intervention modes
+
+| Mode                | What happens                                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| ⚡ **Interrupt**    | Fires `roundAbort`. Current speaker's stream stops mid-token, partial text is committed, your message is pushed to transcript, **a new round auto-starts** with the next speaker reacting to your input. |
+| ↳ **Queue**         | Your message is queued. Current round finishes naturally; the next round starts with your message in transcript.      |
+| ‖ **Pause / Resume**| Pauses at the **round boundary** (in-flight tokens are not cut). Resume restarts the round loop from where it left off. |
+| ■ **Stop**          | Fires `sessionAbort`. Whole session ends; final 5-section artifact is generated; SSE stream closes.                   |
+
+System prompts can be **hot-swapped** mid-session — saving them takes effect from the next round. Authentication and active-agent list are **locked** once a session starts (start a new session to change them).
+
+---
+
+## End reasons
+
+```
+session_end.reason ∈ { user_stop, max_turns, budget_exceeded, time_exceeded }
+```
+
+| Reason            | Default                | User-adjustable range          |
+| ----------------- | ---------------------- | ------------------------------ |
+| `max_turns`       | 30 turns               | 1 ~ 200                        |
+| `budget_exceeded` | 100,000 tokens         | 1,000 ~ 1,000,000              |
+| `time_exceeded`   | 5 minutes              | 30s ~ 60min                    |
+| `user_stop`       | STOP button OR all adapters fail 3 consecutive rounds | n/a                            |
+
+Limits are clamped server-side (`orchestrator.ts:clampLimits`) so client requests can't bypass safety bounds.
 
 ---
 
