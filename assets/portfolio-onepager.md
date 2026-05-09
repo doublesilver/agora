@@ -1,7 +1,7 @@
 # Agora — 사용자가 토론에 참여하는 멀티 AI 도구
 
 > **이은석** · korea5410@gmail.com · GitHub [doublesilver/agora](https://github.com/doublesilver/agora)
-> 라이브 데모: (Railway 배포 후 추가) · 데모 영상: (녹화 후 추가)
+> 라이브 데모: <https://agora-production-17a6.up.railway.app> · 데모 영상: (녹화 후 추가)
 
 여러 AI(Claude · GPT · Gemini)가 직렬 라운드로 토론하는 도구. 사용자가 시스템 프롬프트로 역할을 지정하고, 진행 중에 의견을 끼워넣으면 발언이 즉시 끊기고 다음 라운드가 의견을 반영해 재정렬. **도메인 무관** — 어떤 주제든 OK.
 

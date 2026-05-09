@@ -1,5 +1,7 @@
 # Agora — Multi-AI Debate Tool with Human-in-the-Loop
 
+🚀 **Live demo**: https://agora-production-17a6.up.railway.app  (BYOK — paste your own API keys to start)
+
 A web tool where multiple AI agents (Claude · GPT · Gemini) take turns in a **serial round** to discuss a topic, while you can **interrupt, queue, pause, resume, or stop** the debate at any time. **Domain-agnostic** — define your own domain via system prompts.
 
 > **One-line differentiator** — Not a parallel multi-call. **A human participates in the AI debate.**
