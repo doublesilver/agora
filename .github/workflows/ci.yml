@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# main이 빠르게 연속 push될 때 이전 in-flight job 자동 cancel — Railway 배포
+# 트리거가 main push 단위라 가장 최신 commit만 검증하면 충분.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck · Test · Verify · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies (clean)
+        run: npm ci
+
+      # CLAUDE.md 비기능 요구: TypeScript strict 0 에러 유지
+      - name: Typecheck
+        run: npm run typecheck
+
+      # vitest — 어댑터 헬퍼 + session-store 단위 테스트 26 cases
+      - name: Unit tests (vitest)
+        run: npm test
+
+      # 9 시나리오 회귀 — 정상·인터럽트·timeout·error·pause-resume·hotswap·
+      # pause-mid-stop·budget·time. fake adapter로 빠르게 1분 미만.
+      - name: Orchestrator regression (9 scenarios)
+        run: npx tsx scripts/verify-orchestrator.ts
+
+      # JSONL 시크릿 위생 검증
+      - name: Secret hygiene (scrub-check)
+        run: bash scripts/scrub-check.sh logs/sample-session.jsonl
+
+      # Production 빌드 — standalone 출력까지 확인
+      - name: Build (standalone)
+        run: npm run build

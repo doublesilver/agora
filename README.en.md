@@ -1,5 +1,10 @@
 # Agora — Multi-AI Debate Tool with Human-in-the-Loop
 
+[![CI](https://github.com/doublesilver/agora/actions/workflows/ci.yml/badge.svg)](https://github.com/doublesilver/agora/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live-Railway-FF6F61?logo=railway&logoColor=white)](https://agora-production-17a6.up.railway.app)
+[![Changelog](https://img.shields.io/badge/Changelog-v0.2.0-blue)](./CHANGELOG.md)
+
 🚀 **Live demo**: https://agora-production-17a6.up.railway.app  (BYOK — paste your own API keys to start)
 
 A web tool where multiple AI agents (Claude · GPT · Gemini) take turns in a **serial round** to discuss a topic, while you can **interrupt, queue, pause, resume, or stop** the debate at any time. **Domain-agnostic** — define your own domain via system prompts.

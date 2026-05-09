@@ -1,5 +1,10 @@
 # Agora — 사용자가 함께 참여하는 멀티 AI 토론 도구
 
+[![CI](https://github.com/doublesilver/agora/actions/workflows/ci.yml/badge.svg)](https://github.com/doublesilver/agora/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live-Railway-FF6F61?logo=railway&logoColor=white)](https://agora-production-17a6.up.railway.app)
+[![Changelog](https://img.shields.io/badge/Changelog-v0.2.0-blue)](./CHANGELOG.md)
+
 🚀 **라이브 데모**: https://agora-production-17a6.up.railway.app  (BYOK — 본인 API 키 입력 후 시작)
 
 여러 AI 에이전트(Claude · GPT · Gemini)가 **직렬 라운드**로 토크쇼식 핑퐁을 주고받고, 사용자는 진행 중에 의견을 끼워넣을 수 있는 웹 도구입니다. **도메인 무관** — 어떤 주제든 본인의 시스템 프롬프트로 정의해 사용하세요.

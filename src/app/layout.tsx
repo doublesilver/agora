@@ -1,10 +1,52 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const SITE_URL = "https://agora-production-17a6.up.railway.app";
+
 export const metadata: Metadata = {
-  title: "Agora — 사용자가 끼어들 수 있는 멀티 AI 토론",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Agora — Multi-AI Debate with Human-in-the-Loop",
+    template: "%s · Agora",
+  },
   description:
-    "여러 AI 에이전트(Claude·GPT·Gemini)가 직렬 라운드로 자유 메시지를 주고받으며 사용자의 프롬프트를 협업 처리한다. 사용자는 토론에 즉시 끼어들거나 다음 라운드에 보태거나 일시정지·재개·종료할 수 있고, 전체 transcript를 실시간으로 관찰한다.",
+    "Multiple AI agents (Claude · GPT · Gemini) take turns in a serial round to discuss a topic. Users can interrupt, queue, pause, resume, or stop the debate at any time. Domain-agnostic — define your own domain via system prompts.",
+  applicationName: "Agora",
+  authors: [{ name: "Eunseok Lee", url: "https://github.com/doublesilver" }],
+  keywords: [
+    "multi-agent",
+    "llm",
+    "claude",
+    "openai",
+    "gemini",
+    "ai-debate",
+    "nextjs",
+    "typescript",
+    "sse",
+    "orchestration",
+  ],
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Agora",
+    title: "Agora — Multi-AI Debate with Human-in-the-Loop",
+    description:
+      "Claude · GPT · Gemini take turns in serial rounds; you can interrupt mid-debate. Domain-agnostic. Next.js 16 + TypeScript strict + SSE + JSONL.",
+    locale: "en_US",
+    alternateLocale: ["ko_KR"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Agora — Multi-AI Debate with Human-in-the-Loop",
+    description:
+      "Claude · GPT · Gemini take turns in serial rounds; you can interrupt mid-debate. Live demo + open source.",
+    creator: "@doublesilver",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  category: "developer-tools",
 };
 
 export default function RootLayout({
