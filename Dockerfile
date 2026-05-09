@@ -37,9 +37,10 @@ RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
 # Next.js standalone 번들만 복사 (.next/standalone에 server.js + 최소 deps).
+# public/ 디렉토리는 미사용 — favicon은 App Router가 src/app/favicon.ico로 직접 처리.
+# 향후 public/ 정적 자산 추가 시 이 위치에 COPY 라인 한 줄 추가.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # JSONL 로그 디렉토리 — 컨테이너 ephemeral storage. Stage A에선 단일 사용자
 # 데모 가정이라 영속화 불필요. Stage B에서 S3 또는 DB로 마이그레이션.
